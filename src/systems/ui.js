@@ -5,6 +5,56 @@ const PAPER = 0xf1e4c7;
 const INK = '#261b18';
 
 export function createObjectiveHud(scene, gameState) {
+  const rageTextureKey = 'rageVignetteTexture';
+  if (!scene.textures.exists(rageTextureKey)) {
+    const texture = scene.textures.createCanvas(rageTextureKey, GAME_WIDTH, GAME_HEIGHT);
+    const context = texture.getContext();
+    context.fillStyle = 'rgba(101, 8, 20, 0.055)';
+    context.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    const paintEdge = (gradient, x, y, width, height) => {
+      context.fillStyle = gradient;
+      context.fillRect(x, y, width, height);
+    };
+    const top = context.createLinearGradient(0, 0, 0, 280);
+    top.addColorStop(0, 'rgba(55, 2, 10, 0.58)');
+    top.addColorStop(1, 'rgba(75, 5, 15, 0)');
+    paintEdge(top, 0, 0, GAME_WIDTH, 280);
+    const bottom = context.createLinearGradient(0, GAME_HEIGHT, 0, GAME_HEIGHT - 280);
+    bottom.addColorStop(0, 'rgba(55, 2, 10, 0.58)');
+    bottom.addColorStop(1, 'rgba(75, 5, 15, 0)');
+    paintEdge(bottom, 0, GAME_HEIGHT - 280, GAME_WIDTH, 280);
+    const left = context.createLinearGradient(0, 0, 320, 0);
+    left.addColorStop(0, 'rgba(55, 2, 10, 0.52)');
+    left.addColorStop(1, 'rgba(75, 5, 15, 0)');
+    paintEdge(left, 0, 0, 320, GAME_HEIGHT);
+    const right = context.createLinearGradient(GAME_WIDTH, 0, GAME_WIDTH - 320, 0);
+    right.addColorStop(0, 'rgba(55, 2, 10, 0.52)');
+    right.addColorStop(1, 'rgba(75, 5, 15, 0)');
+    paintEdge(right, GAME_WIDTH - 320, 0, 320, GAME_HEIGHT);
+    texture.refresh();
+  }
+  const rageVignette = scene.add.container(0, 0, [
+    scene.add.image(0, 0, rageTextureKey).setOrigin(0),
+    scene.add.text(GAME_WIDTH - 44, GAME_HEIGHT - 38, 'RAGE MODE', {
+      fontFamily: 'Arial Black, Arial, sans-serif',
+      fontSize: '36px',
+      color: '#a93b3b',
+      stroke: '#31040a',
+      strokeThickness: 7,
+    }).setOrigin(1, 1).setAlpha(0.72),
+  ])
+    .setDepth(DEPTH.ui - 1)
+    .setScrollFactor(0)
+    .setVisible(false);
+  const ragePulse = scene.tweens.add({
+    targets: rageVignette,
+    alpha: { from: 0.72, to: 1 },
+    duration: 3600,
+    ease: 'Sine.easeInOut',
+    yoyo: true,
+    repeat: -1,
+    paused: true,
+  });
   const panel = scene.add.rectangle(36, 36, 560, 248, PAPER, 0.96)
     .setOrigin(0)
     .setStrokeStyle(5, 0x382824)
@@ -31,6 +81,10 @@ export function createObjectiveHud(scene, gameState) {
   const render = () => {
     const state = gameState.data;
     const feral = gameState.has('feralMode');
+    const showRageVisuals = feral && !gameState.has('rageVisualsComplete');
+    rageVignette.setVisible(showRageVisuals);
+    if (showRageVisuals && !ragePulse.isPlaying()) ragePulse.resume();
+    if (!showRageVisuals && ragePulse.isPlaying()) ragePulse.pause();
     personalText.setText(state.personalObjective);
     currentText.setText(state.currentObjective);
     panel.setDisplaySize(560, feral ? 300 : 248);
@@ -89,6 +143,9 @@ export function createObjectiveHud(scene, gameState) {
         gameState.setCurrentObjective('EAT FORM 12-C');
         gameState.setFlag('feralMode');
         targets.forEach((target) => target.setAlpha(1));
+        scene.cameras.main.zoomTo(1.025, 110, 'Cubic.easeOut');
+        scene.time.delayedCall(120, () => scene.cameras.main.zoomTo(1, 260, 'Back.easeOut'));
+        scene.cameras.main.shake(180, 0.0045);
         scene.tweens.add({
           targets: personalText,
           scale: { from: 0.82, to: 1 },
@@ -106,6 +163,7 @@ export function createObjectiveHud(scene, gameState) {
     personalText,
     currentHeading,
     currentText,
+    rageVignette,
     render,
     replaceCurrentObjective,
     enterFeralMode,
@@ -168,7 +226,10 @@ export function showDialogue(scene, lines) {
     const render = () => {
       const line = lines[index];
       speaker.setText(line.speaker.toUpperCase());
-      body.setText(line.text);
+      body
+        .setText(line.text)
+        .setFontSize(line.fontSize ?? 36)
+        .setFontStyle(line.fontStyle ?? 'normal');
     };
     const destroy = () => {
       [shade, box, speaker, body, prompt, clickShield].forEach((item) => item.destroy());
@@ -199,14 +260,15 @@ export function showChoice(scene, { speaker, text, choices }) {
     }).setDepth(DEPTH.ui + 7);
     const created = [shade, box, speakerText, body];
     const wiggles = [];
-    const buttonWidth = 820;
-    const buttonHeight = 56;
+    const rageChoice = choices.some((choice) => choice.feral);
+    const buttonWidth = rageChoice ? GAME_WIDTH - 252 : 820;
+    const buttonHeight = rageChoice ? 86 : 56;
 
     choices.forEach((choice, index) => {
-      const column = index % 2;
-      const row = Math.floor(index / 2);
+      const column = rageChoice ? 0 : index % 2;
+      const row = rageChoice ? index : Math.floor(index / 2);
       const x = 126 + column * 910;
-      const y = boxY + 170 + row * 70;
+      const y = boxY + 170 + row * (rageChoice ? 98 : 70);
       const button = scene.add.rectangle(x, y, buttonWidth, buttonHeight, 0xd8c7a7, 1)
         .setOrigin(0).setStrokeStyle(3, 0x604940).setDepth(DEPTH.ui + 7)
         .setInteractive({ cursor: 'pointer' });
@@ -215,7 +277,7 @@ export function showChoice(scene, { speaker, text, choices }) {
       const label = scene.add.text(labelX, labelY, choice.feral ? choice.label.toUpperCase() : choice.label, {
         fontFamily: 'Arial, sans-serif',
         fontStyle: choice.feral ? 'bold' : 'normal',
-        fontSize: choice.feral ? '28px' : '23px',
+        fontSize: choice.feral ? '42px' : '23px',
         color: choice.feral ? '#6f2722' : INK,
       }).setOrigin(0, 0.5).setDepth(DEPTH.ui + 8);
       if (choice.feral) {

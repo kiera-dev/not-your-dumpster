@@ -111,18 +111,18 @@ export class HearingRoomScene extends Phaser.Scene {
     await showDialogue(this, [
       { speaker: 'Crow', text: 'Municipal Services Hearing Room, case 7-C.' },
       { speaker: 'Crow', text: 'Jimothy versus one grape, ownership pending.' },
-      { speaker: 'Squirrel', text: 'The applicant has submitted Form 8-B, a notarized leaf, sanitation certification, and one dollar and thirteen cents.' },
+      { speaker: 'Squirrel', text: 'The applicant has submitted Form 8-B, a notarized leaf, sanitation certification, and a receipt for one dollar and thirteen cents.' },
       { speaker: 'Pigeon', text: 'The leaf is upside down.' },
-      { speaker: 'Squirrel', text: 'It is a leaf.' },
+      { speaker: 'Squirrel', text: 'It is a leaf....' },
     ]);
 
     const oath = await showChoice(this, {
       speaker: 'Crow',
       text: 'Do you swear that all information contained in this application is true and complete?',
       choices: [
-        { label: 'YES', value: 'yes' },
+        { label: 'RACCOON?', value: 'raccoon' },
         { label: 'NO', value: 'no' },
-        { label: 'RACCOON', value: 'raccoon' },
+        { label: 'RACCOON.', value: 'raccoon' },
         { label: 'PRRT?', value: 'trill' },
       ],
     });
@@ -136,17 +136,17 @@ export class HearingRoomScene extends Phaser.Scene {
 
     await showDialogue(this, [
       { speaker: 'Crow', text: 'Container 7-C rests directly on a municipal jurisdictional boundary.' },
-      { speaker: 'Pigeon', text: 'The boundary is marked by a traffic cone.' },
+      { speaker: 'Pigeon', text: 'The boundary is marked by a traffic cone. THE traffic CONE' },
     ]);
     if (this.state.has('coneMovedEarly')) {
       await showDialogue(this, [
         { speaker: 'Squirrel', text: 'Records indicate six inches west.' },
-        { speaker: 'Pigeon', text: 'That is practically another government.' },
+        { speaker: 'Pigeon', text: 'That is practically three governments.' },
       ]);
     } else {
       await showDialogue(this, [
-        { speaker: 'Squirrel', text: 'A traffic cone is not a survey monument.' },
-        { speaker: 'Pigeon', text: 'It is orange.' },
+        { speaker: 'Squirrel', text: 'A traffic cone legally defines the jurisdiction line.' },
+        { speaker: 'Pigeon', text: '...it is orange.' },
       ]);
     }
     const cone = await showChoice(this, {
@@ -160,52 +160,51 @@ export class HearingRoomScene extends Phaser.Scene {
       ],
     });
     const coneResponses = {
-      no: 'No cone incident is presently attached to this docket.',
-      six: 'Six inches is apparently enough to require three districts.',
-      raccoon: 'The cone is not a raccoon.',
+      no: 'No CONE incident is presently attached to this docket.',
+      six: 'Six inches is enough to require involving three districts.',
+      raccoon: 'THE CONE is not a raccoon.',
       define: 'The tribunal begins defining “position.”',
     };
     await showDialogue(this, [{ speaker: 'Crow', text: coneResponses[cone] }]);
 
-    // The cone incident is inevitable. If Jimothy did not move it in the alley,
-    // municipal activity moves it during the hearing instead. Either way, the
-    // Crow discovers it after the response and reacts before returning to idle.
-    if (!this.state.has('coneMovedEarly')) {
-      this.state.setFlag('coneMovedByCity');
+    if (this.state.has('coneMovedEarly')) {
+      this.setCrowTexture('crowIdle');
       await showDialogue(this, [
-        { speaker: 'Pigeon', text: 'The cone has moved during the hearing.' },
+        { speaker: 'Crow', text: 'Yes. The tribunal is already aware of the six inches.' },
       ]);
-    }
-    this.setCrowTexture('crowPanic');
-    await showDialogue(this, this.state.has('coneMovedEarly') ? [
-      { speaker: 'Crow', text: 'THE CONE WAS MOVED?' },
-      { speaker: 'Crow', text: 'SIX INCHES?' },
-      { speaker: 'Crow', text: 'THE CONE CANNOT SIMPLY CHANGE JURISDICTIONS.' },
-    ] : [
-        { speaker: 'Crow', text: 'THE CONE WAS MOVED?' },
-        { speaker: 'Crow', text: 'WHO MOVED THE CONE?' },
-        { speaker: 'Squirrel', text: 'No responsible party is currently on the record.' },
-    ]);
-    this.setCrowTexture('crowIdle');
-
-    if (this.state.has('coneMovedEarly') || this.state.has('coneMovedByCity')) {
+      this.state.setFlag('hasConeCitation');
+      void showToast(this, 'RECEIVED: CITATION: BS 0736.02 §(C)');
       await showDialogue(this, [{
         speaker: 'Crow',
-        text: 'You are receiving a sanction for violating BS 0736.02, subsection C — Unauthorized Changing of Jurisdictional Boundaries. Please come back for your hearing date on November 23, 2088.',
+        text: 'You are receiving a sanction for violating BS 0736.02, subsection §C: Unauthorized Changing of Jurisdictional Boundaries. Come back for your hearing date on November 23, 2088.',
+      }]);
+    } else {
+      this.state.setFlag('coneMovedByCity');
+      await showDialogue(this, [
+        { speaker: 'Pigeon', text: 'THE CONE has moved during the hearing.' },
+        { speaker: 'Crow', text: 'WHO MOVED THE CONE!?' },
+        { speaker: 'Squirrel', text: 'No responsible party is currently on the record.' },
+      ]);
+      this.setCrowTexture('crowIdle');
+      await showDialogue(this, [{
+        speaker: 'Crow',
+        text: '*sigh*…I really wanted to cite someone today.',
+        fontSize: 23,
+        fontStyle: 'italic',
       }]);
     }
 
-    this.setCrowTexture(this.state.has('coneMovedEarly') ? 'crowPanic' : 'crowIdle');
+    this.setCrowTexture('crowIdle');
     await showDialogue(this, [
       { speaker: 'Crow', text: 'This tribunal finds that the applicant completed every requirement presented.' },
-      { speaker: 'Crow', text: 'The Dumpster Access Permit is therefore—' },
+      { speaker: 'Crow', text: 'The Dumpster Access Permit is theref-' },
       { speaker: 'Pigeon', text: 'Form 12-C is missing.' },
-      { speaker: 'Crow', text: 'Of course it is.' },
+      { speaker: 'Crow', text: '...of course it is.' },
       { speaker: 'Crow', text: 'DENIED.' },
     ]);
     this.state.setFlag('hearingComplete');
     this.state.setFlag('needsJurisdictionReview', false);
-    await showToast(this, 'RULING: DENIED — FORM 12-C REQUIRED');
+    await showToast(this, 'RULING: "DENIED." FORM 12-C REQUIRED');
     await this.hud.replaceCurrentObjective('OBTAIN FORM 12-C');
     this.setCrowTexture('crowIdle');
     this.busy = false;

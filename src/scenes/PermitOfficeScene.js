@@ -13,6 +13,18 @@ import {
   showToast,
 } from '../systems/ui.js';
 
+const STAMP_RAMPAGE = Object.freeze([
+  { key: 'deniedStamp', x: 485, y: 345, width: 185, angle: -8, target: 'wall' },
+  { key: 'voidStamp', x: 720, y: 835, width: 170, angle: 7, target: 'desk' },
+  { key: 'returnedStamp', x: 285, y: 720, width: 175, angle: -13, target: 'forms' },
+  { key: 'approvedStamp', x: 835, y: 545, width: 160, angle: 9, target: 'plant' },
+  { key: 'deniedStamp', x: 820, y: 610, width: 165, angle: -5, target: 'wall' },
+  { key: 'voidStamp', x: 1175, y: 410, width: 190, angle: 12, target: 'wall' },
+  { key: 'approvedStamp', x: 1490, y: 630, width: 180, angle: -10, target: 'wall' },
+  { key: 'returnedStamp', x: 1760, y: 925, width: 205, angle: 6, target: 'wall' },
+]);
+const HALF_EATEN_FORM_WIDTH = 437;
+
 export class PermitOfficeScene extends Phaser.Scene {
   constructor() { super('PermitOffice'); }
 
@@ -26,6 +38,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     this.stampHotspot = null;
     this.keyHotspot = null;
     this.screenInspections = 0;
+    this.stampMarks = [];
     this.state = new GameState(this.registry);
     this.state.setFlag('enteredPermitOffice');
     this.add.image(0, 0, layout.background).setOrigin(0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT).setDepth(DEPTH.background);
@@ -65,6 +78,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     if (this.state.has('form12Presented') && !this.state.has('form12Submitted')) {
       this.createForm12Prop();
     }
+    if (this.state.has('stampRampageComplete')) this.restoreStampRampage();
 
     this.ticketNumber = this.add.text(
       layout.ticketScreen.x,
@@ -118,12 +132,7 @@ export class PermitOfficeScene extends Phaser.Scene {
       this.penHotspot = createHotspot(this, hotspots.chainedPen, () => this.inspectPen(), { label: 'Chained pen' });
     }
     if (this.state.has('form12Presented') && !this.state.has('form12Submitted')) this.ensureForm12Hotspot();
-    if (this.state.has('feralMode') && !this.state.has('hasMunicipalStamp')) {
-      this.stampHotspot = createHotspot(this, {
-        ...hotspots.stamp,
-        x: hotspots.stamp.x - (this.state.has('deskTaken') ? 85 : 0),
-      }, () => this.inspectStamp(), { label: 'Municipal stamp' });
-    }
+    this.ensureRageStampHotspot();
     if (this.state.has('feralMode') && !this.state.has('hasMunicipalKey')) {
       this.keyHotspot = createHotspot(this, hotspots.key, () => this.inspectMunicipalKey(), { label: 'Municipal key' });
     }
@@ -138,7 +147,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     }
     let text = null;
     let action = () => this.useOfficeExit();
-    if (this.state.has('deskTaken')) {
+    if (this.state.has('deskTaken') && this.state.has('stampRampageComplete')) {
       text = 'RETURN TO DUMPSTER';
       action = () => this.useOfficeExit();
     } else if (this.state.has('needsJurisdictionReview')) text = 'ATTEND HEARING';
@@ -155,10 +164,9 @@ export class PermitOfficeScene extends Phaser.Scene {
       .setDisplaySize(item.displayWidth, item.displayHeight)
       .setDepth(item.depth);
     if (this.state.has('form12PartiallyEaten')) {
-      this.form12.setScale(
-        this.form12.scaleX * 0.52,
-        this.form12.scaleY,
-      ).setX(this.form12.x - 120);
+      this.form12
+        .setDisplaySize(HALF_EATEN_FORM_WIDTH, item.displayHeight)
+        .setX(this.form12.x - 120);
     }
     return this.form12;
   }
@@ -269,8 +277,8 @@ export class PermitOfficeScene extends Phaser.Scene {
       .setData('idleKey', 'jimothyInteriorWalk1')
       .setData('vest', false);
     await this.hud.enterFeralMode();
-    await showToast(this, 'NEW MECHANIC UNLOCKED: RACCOON');
     this.setFeralPose();
+    await showToast(this, 'NEW MECHANIC UNLOCKED: RACCOON');
     this.ensureForm12Hotspot();
     this.refreshExitPrompt();
   }
@@ -279,25 +287,24 @@ export class PermitOfficeScene extends Phaser.Scene {
     if (this.busy || !this.state.has('feralMode') || this.state.has('form12Submitted')) return;
     this.busy = true;
     const form = this.createForm12Prop();
-    this.jimothy.setTexture('jimothyEat').setScale(1.05).setFlipX(true);
+    this.jimothy.setTexture('jimothyEat').setScale(1.05).setFlipX(false);
 
     if (!this.state.has('form12PartiallyEaten')) {
+      const halfEatenScaleX = form.scaleX * (HALF_EATEN_FORM_WIDTH / form.displayWidth);
       await new Promise((resolve) => this.tweens.add({
         targets: form,
-        scaleX: form.scaleX * 0.52,
+        scaleX: halfEatenScaleX,
         x: form.x - 120,
         duration: 520,
         ease: 'Back.easeIn',
         onComplete: resolve,
       }));
       this.state.setFlag('form12PartiallyEaten');
+      this.setFeralPose();
       await this.hud.replaceCurrentObjective('FINISH FORM 12-C');
       await showDialogue(this, [
         { speaker: 'Clerk', text: 'Partial submission.' },
       ]);
-      this.jimothy
-        .setScale(this.layout.jimothy.scaleX, this.layout.jimothy.scaleY);
-      this.setFeralPose();
       this.refreshExitPrompt();
       this.busy = false;
       return;
@@ -316,14 +323,12 @@ export class PermitOfficeScene extends Phaser.Scene {
     this.form12Hotspot?.destroy();
     this.form12Hotspot = null;
     this.state.setFlag('form12Submitted');
+    this.setFeralPose();
     await showDialogue(this, [
       { speaker: 'Clerk', text: '…complete submission.' },
     ]);
     await showToast(this, 'FORM 12-C: SUBMITTED');
     await this.hud.replaceCurrentObjective('TAKE PEN');
-    this.jimothy
-      .setScale(this.layout.jimothy.scaleX, this.layout.jimothy.scaleY);
-    this.setFeralPose();
     this.refreshExitPrompt();
     this.busy = false;
   }
@@ -367,6 +372,21 @@ export class PermitOfficeScene extends Phaser.Scene {
     if (this.busy) return;
     this.busy = true;
     await showDialogue(this, [{ speaker: 'Service bell', text: 'DING.' }]);
+
+    if (this.state.has('feralMode')
+      && this.state.has('deskTaken')
+      && !this.state.has('stampRampageComplete')) {
+      await showDialogue(this, [
+        { speaker: 'Clerk', text: 'The bell is not the stamp.' },
+      ]);
+      this.ensureRageStampHotspot();
+      this.stamp?.setDepth(DEPTH.effect + 1);
+      if (this.state.data.currentObjective !== 'TAKE STAMP') {
+        await this.hud.replaceCurrentObjective('TAKE STAMP');
+      }
+      this.busy = false;
+      return;
+    }
 
     if (!this.state.has('hasTicket033')) {
       await this.withClerkDialogue([
@@ -575,6 +595,13 @@ export class PermitOfficeScene extends Phaser.Scene {
   async useOfficeExit() {
     if (this.busy) return;
     if (this.state.has('deskTaken')) {
+      if (!this.state.has('stampRampageComplete')) {
+        this.busy = true;
+        await showDialogue(this, [{ speaker: 'Jimothy', text: 'Municipal authority remains insufficiently distributed.' }]);
+        await this.hud.replaceCurrentObjective('TAKE STAMP');
+        this.busy = false;
+        return;
+      }
       this.busy = true;
       fadeToScene(this, 'Alley', { fromFeralOffice: true });
       return;
@@ -681,10 +708,17 @@ export class PermitOfficeScene extends Phaser.Scene {
       this.penHotspot = null;
       this.ticketMachineHotspot = null;
       this.serviceBellHotspot?.setPosition(810, 1050);
-      this.stampHotspot?.setPosition(590, 1040);
+      this.stampHotspot?.destroy();
+      this.stampHotspot = null;
       this.plantHotspot?.setPosition(this.layout.happyPlant.x, this.layout.happyPlant.y - 90);
       this.cameras.main.shake(180, 0.004);
       this.state.setFlag('deskTaken');
+      this.ensureRageStampHotspot();
+      this.stampMarks
+        .filter((mark) => mark.getData('stampTarget') === 'desk')
+        .forEach((mark) => mark.destroy());
+      const plantStamp = this.stampMarks.find((mark) => mark.getData('stampTarget') === 'plant');
+      if (plantStamp) plantStamp.setPosition(this.layout.happyPlant.x, this.layout.happyPlant.y - 105);
       this.plant
         .setTexture('happyPlant')
         .setPosition(this.layout.happyPlant.x, this.layout.happyPlant.y)
@@ -694,7 +728,9 @@ export class PermitOfficeScene extends Phaser.Scene {
         { speaker: 'Clerk', text: 'My desk!!' },
       ]);
       await showToast(this, 'DESK RECEIVED');
-      await this.hud.replaceCurrentObjective('RETURN TO DUMPSTER');
+      await this.hud.replaceCurrentObjective(
+        this.state.has('stampRampageComplete') ? 'RETURN TO DUMPSTER' : 'TAKE STAMP',
+      );
       this.refreshExitPrompt();
       this.busy = false;
       return;
@@ -709,12 +745,112 @@ export class PermitOfficeScene extends Phaser.Scene {
   }
 
   setFeralPose() {
+    this.rageJitter?.remove();
+    if (this.rageRestingPoint) {
+      this.jimothy.setPosition(this.rageRestingPoint.x, this.rageRestingPoint.y);
+    }
     this.jimothy
       .setTexture('jimothyFeralInteriorInteract')
       .setScale(this.layout.jimothy.scaleX, this.layout.jimothy.scaleY)
       .setFlipX(false)
       .setData('idleKey', 'jimothyFeralInteriorInteract')
       .setData('vest', false);
+    const restingX = this.jimothy.x;
+    const restingY = this.jimothy.y;
+    this.rageRestingPoint = { x: restingX, y: restingY };
+    this.rageJitter = this.tweens.add({
+      targets: this.jimothy,
+      x: { from: restingX - 1.5, to: restingX + 1.5 },
+      y: { from: restingY - 0.75, to: restingY + 0.75 },
+      duration: 105,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: -1,
+    });
+  }
+
+  ensureRageStampHotspot() {
+    if (this.stampHotspot
+      || !this.state.has('feralMode')
+      || this.state.has('hasMunicipalStamp')) return;
+    const hotspot = this.layout.hotspots.stamp;
+    const bounds = this.state.has('deskTaken')
+      ? { x: 590, y: 1045, width: 230, height: 220 }
+      : { ...hotspot, y: 650, width: 175, height: 190 };
+    this.stampHotspot = createHotspot(
+      this,
+      bounds,
+      () => this.inspectStamp(),
+      { label: 'Municipal stamp' },
+    );
+  }
+
+  createStampMark(mark, animate = false) {
+    const texture = this.textures.get(mark.key).getSourceImage();
+    const image = this.add.image(mark.x, mark.y, mark.key)
+      .setDisplaySize(mark.width, mark.width * (texture.height / texture.width))
+      .setAngle(mark.angle)
+      .setDepth(DEPTH.effect)
+      .setData('stampTarget', mark.target);
+    if (mark.yScale) image.setScale(image.scaleX, image.scaleY * mark.yScale);
+    if (animate) image.setScale(image.scaleX * 2.1, image.scaleY * 2.1).setAlpha(0);
+    this.stampMarks.push(image);
+    return image;
+  }
+
+  getStampRampageMarks() {
+    return STAMP_RAMPAGE.map((mark) => {
+      if (mark.target === 'plant' && this.state.has('deskTaken')) {
+        return { ...mark, x: this.layout.happyPlant.x, y: this.layout.happyPlant.y - 105 };
+      }
+      if (mark.target === 'desk' && this.state.has('deskTaken')) {
+        if (this.state.has('stampRampageBeforeDesk')) return null;
+        return { ...mark, x: 960, y: 1010, width: 205, angle: -6, yScale: 0.68, target: 'floor' };
+      }
+      return mark;
+    }).filter(Boolean);
+  }
+
+  restoreStampRampage() {
+    this.getStampRampageMarks().forEach((mark) => this.createStampMark(mark));
+  }
+
+  async stampEverything() {
+    this.state.setFlag('stampRampageBeforeDesk', !this.state.has('deskTaken'));
+    await showChoice(this, {
+      speaker: 'Jimothy',
+      text: 'Municipal authority requires broad and immediate application.',
+      choices: [{ label: 'STAMP EVERYTHING', value: 'stamp', feral: true }],
+    });
+    for (const mark of this.getStampRampageMarks()) {
+      const impression = this.createStampMark(mark, true);
+      const impactText = this.add.text(mark.x, mark.y - 70, 'THUNK', {
+        fontFamily: 'Arial Black, Arial, sans-serif',
+        fontSize: '32px',
+        color: '#6f2722',
+        stroke: '#f1e4c7',
+        strokeThickness: 6,
+      }).setOrigin(0.5).setDepth(DEPTH.effect + 1).setAngle(mark.angle);
+      this.cameras.main.shake(70, 0.0025);
+      await new Promise((resolve) => this.tweens.add({
+        targets: impression,
+        scaleX: impression.scaleX / 2.1,
+        scaleY: impression.scaleY / 2.1,
+        alpha: 0.92,
+        duration: 125,
+        ease: 'Back.easeOut',
+        onComplete: resolve,
+      }));
+      this.tweens.add({
+        targets: impactText,
+        y: impactText.y - 35,
+        alpha: 0,
+        duration: 260,
+        onComplete: () => impactText.destroy(),
+      });
+      await new Promise((resolve) => this.time.delayedCall(70, resolve));
+    }
+    this.state.setFlag('stampRampageComplete');
   }
 
   async inspectStamp() {
@@ -736,6 +872,12 @@ export class PermitOfficeScene extends Phaser.Scene {
     this.stampHotspot = null;
     await showToast(this, 'ACQUIRED: MUNICIPAL AUTHORITY STAMP');
     await showDialogue(this, [{ speaker: 'Clerk', text: 'That does not make you municipal authority.' }]);
+    await this.stampEverything();
+    await showDialogue(this, [{ speaker: 'Clerk', text: 'That made it significantly worse.' }]);
+    if (this.state.has('deskTaken')) {
+      await this.hud.replaceCurrentObjective('RETURN TO DUMPSTER');
+      this.refreshExitPrompt();
+    }
     this.busy = false;
   }
 

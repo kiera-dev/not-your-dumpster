@@ -24,6 +24,8 @@ export class AlleyScene extends Phaser.Scene {
     this.exitPrompt = null;
     this.doorHotspot = null;
     this.leafHotspot = null;
+    this.coneHotspot = null;
+    this.cone = null;
     this.state = new GameState(this.registry);
     this.add.image(0, 0, layout.background).setOrigin(0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT).setDepth(DEPTH.background);
 
@@ -42,17 +44,17 @@ export class AlleyScene extends Phaser.Scene {
       .setOrigin(0.5, 1)
       .setDisplaySize(layout.evidence.takeoutBox.displayWidth, layout.evidence.takeoutBox.displayHeight)
       .setDepth(layout.evidence.takeoutBox.depth);
-    const coneShift = this.state.has('coneMovedFeral')
-      ? 145
-      : (this.state.has('coneMovedEarly') || this.state.has('coneMovedByCity')) ? 45 : 0;
-    this.cone = this.add.image(
-      layout.evidence.theCone.x - coneShift,
-      layout.evidence.theCone.y,
-      'theCone',
-    )
-      .setOrigin(0.5, 1)
-      .setDisplaySize(layout.evidence.theCone.displayWidth, layout.evidence.theCone.displayHeight)
-      .setDepth(layout.evidence.theCone.depth);
+    if (!this.state.has('coneMovedFeral')) {
+      const coneShift = (this.state.has('coneMovedEarly') || this.state.has('coneMovedByCity')) ? 45 : 0;
+      this.cone = this.add.image(
+        layout.evidence.theCone.x - coneShift,
+        layout.evidence.theCone.y,
+        'theCone',
+      )
+        .setOrigin(0.5, 1)
+        .setDisplaySize(layout.evidence.theCone.displayWidth, layout.evidence.theCone.displayHeight)
+        .setDepth(layout.evidence.theCone.depth);
+    }
     this.receipt = this.add.image(layout.evidence.receipt.x, layout.evidence.receipt.y, 'crumpledReceipt')
       .setOrigin(0.5, 1)
       .setDisplaySize(layout.evidence.receipt.displayWidth, layout.evidence.receipt.displayHeight)
@@ -87,6 +89,9 @@ export class AlleyScene extends Phaser.Scene {
     }
     if (this.state.has('permitOfficeUnlocked')) this.enableOfficeDoor();
     if (this.state.has('grapeAttempted') && !this.state.has('clerkInterrupted')) this.runClerkInterruption();
+    if (data.fromFeralOffice && this.state.has('deskTaken') && !this.state.has('coneMovedFeral')) {
+      this.runFinalConeKick();
+    }
   }
 
   async inspectDumpster() {
@@ -150,12 +155,14 @@ export class AlleyScene extends Phaser.Scene {
       width: 150,
       height: 120,
     }, () => this.inspectTakeout(), { label: 'Takeout container' });
-    createHotspot(this, {
-      x: this.cone.x,
-      y: evidence.theCone.y - 120,
-      width: 190,
-      height: 260,
-    }, () => this.inspectCone(), { label: 'THE CONE' });
+    if (this.cone) {
+      this.coneHotspot = createHotspot(this, {
+        x: this.cone.x,
+        y: evidence.theCone.y - 120,
+        width: 190,
+        height: 260,
+      }, () => this.inspectCone(), { label: 'THE CONE' });
+    }
     createHotspot(this, {
       x: evidence.receipt.x,
       y: evidence.receipt.y - 20,
@@ -188,30 +195,8 @@ export class AlleyScene extends Phaser.Scene {
     if (this.busy) return;
     this.busy = true;
     if (this.state.has('feralMode')) {
-      if (this.state.has('coneMovedFeral')) {
-        await showDialogue(this, [
-          { speaker: 'Jimothy', text: 'THE CONE has been sufficiently repositioned.' },
-        ]);
-        this.busy = false;
-        return;
-      }
-      await showChoice(this, {
-        speaker: 'Jimothy',
-        text: 'The jurisdictional boundary remains suspiciously portable.',
-        choices: [{ label: 'MOVE THE CONE', value: 'move', feral: true }],
-      });
-      await new Promise((resolve) => this.tweens.add({
-        targets: this.cone,
-        x: this.cone.x - 100,
-        angle: -8,
-        duration: 460,
-        ease: 'Back.easeOut',
-        onComplete: resolve,
-      }));
-      this.state.setFlag('coneMovedFeral');
       await showDialogue(this, [
-        { speaker: 'Crow, somewhere', text: 'THE CONE WAS MOVED AGAIN?' },
-        { speaker: 'Squirrel, somewhere', text: 'There is no longer a reliable concept of west.' },
+        { speaker: 'Jimothy', text: 'The cone is being saved for a final administrative remedy.' },
       ]);
       this.busy = false;
       return;
@@ -259,6 +244,76 @@ export class AlleyScene extends Phaser.Scene {
         { speaker: 'THE CONE', text: 'The cone remains professionally silent.' },
       ]);
     }
+    this.busy = false;
+  }
+
+  async runFinalConeKick() {
+    this.busy = true;
+    const feralScaleX = SCENE_LAYOUTS.alley.jimothy.scaleX
+      * (SCENE_LAYOUTS.alley.clerk.scaleX / SCENE_LAYOUTS.permitOffice.clerk.scaleX);
+    const feralScaleY = SCENE_LAYOUTS.alley.jimothy.scaleY
+      * (SCENE_LAYOUTS.alley.clerk.scaleY / SCENE_LAYOUTS.permitOffice.clerk.scaleY);
+    this.jimothy
+      .setTexture('jimothyFeralInteriorInteract')
+      .setScale(feralScaleX, feralScaleY)
+      .setFlipX(true);
+    await new Promise((resolve) => this.tweens.add({
+      targets: this.jimothy,
+      x: 1640,
+      y: 1070,
+      duration: 560,
+      ease: 'Sine.easeInOut',
+      onUpdate: (tween) => this.jimothy.setAngle(Math.sin(tween.progress * Math.PI * 8) * 2.5),
+      onComplete: () => {
+        this.jimothy.setAngle(0);
+        resolve();
+      },
+    }));
+    const rageShake = this.tweens.add({
+      targets: this.jimothy,
+      x: { from: 1638.5, to: 1641.5 },
+      y: { from: 1069.25, to: 1070.75 },
+      duration: 105,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: -1,
+    });
+    await showChoice(this, {
+      speaker: 'Jimothy',
+      text: 'One jurisdictional matter remains outstanding.',
+      choices: [{ label: 'KICK THE CONE', value: 'kick', feral: true }],
+    });
+    rageShake.remove();
+    this.jimothy.setPosition(1640, 1070);
+    this.cameras.main.shake(220, 0.006);
+    await new Promise((resolve) => this.tweens.add({
+      targets: this.cone,
+      x: GAME_WIDTH + 360,
+      y: 560,
+      angle: 1080,
+      scaleX: this.cone.scaleX * 0.55,
+      scaleY: this.cone.scaleY * 0.55,
+      duration: 820,
+      ease: 'Cubic.easeIn',
+      onComplete: resolve,
+    }));
+    this.cone.destroy();
+    this.cone = null;
+    this.coneHotspot?.destroy();
+    this.coneHotspot = null;
+    this.state.setFlag('coneMovedFeral');
+    await showDialogue(this, [
+      { speaker: 'Crow, somewhere', text: 'NOOOOOO! NOT THE CONE!' },
+      { speaker: 'Crow, somewhere', text: 'THAT WAS THE ENTIRE JURISDICTIONAL BOUNDARY!' },
+    ]);
+    this.state.setFlag('rageVisualsComplete');
+    this.jimothy
+      .setTexture('jimothyIdle')
+      .setScale(SCENE_LAYOUTS.alley.jimothy.scaleX, SCENE_LAYOUTS.alley.jimothy.scaleY)
+      .setFlipX(false)
+      .setData('idleKey', 'jimothyIdle')
+      .setData('vest', false);
+    await this.hud.replaceCurrentObjective('GET GRAPE');
     this.busy = false;
   }
 

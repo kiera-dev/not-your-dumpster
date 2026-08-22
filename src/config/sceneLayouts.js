@@ -39,7 +39,7 @@ export const SCENE_LAYOUTS = Object.freeze({
       depth: DEPTH.prop - 1,
     },
     officeDoor: {
-      hotspot: { x: 1010, y: 700, width: 230, height: 430 },
+      hotspot: { x: 1010, y: 610, width: 190, height: 220 },
     },
   },
   dumpsterReveal: {
@@ -65,7 +65,7 @@ export const SCENE_LAYOUTS = Object.freeze({
     rightFormStack: { x: 1986.98, y: 1194.75, displayWidth: 208.37, displayHeight: 191.25, depth: 31 },
     // Dialogue-blockout placement only. This gets its exact position in the next PSD pass.
     serviceBell: { x: 690, y: 676, displayWidth: 62, displayHeight: 54, depth: 32 },
-    form12C: { x: 760, y: 835, displayWidth: 840, displayHeight: 257.75, depth: 34 },
+    form12C: { x: 760, y: 740, displayWidth: 700, displayHeight: 257.75, depth: 34 },
     hotspots: {
       // Phaser zones are centered on x/y, matching the visual centers below.
       clerk: { x: 571, y: 650, width: 300, height: 330 },
