@@ -3,6 +3,7 @@ import { DEPTH, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig.js';
 import { SCENE_LAYOUTS, SPRITE_META } from '../config/sceneLayouts.js';
 import { GameState } from '../state/GameState.js';
 import { autoWaddle, createJimothy } from '../systems/Jimothy.js';
+import { getAudio, playSfx, syncSceneAudio } from '../systems/audio.js';
 import {
   createHotspot,
   createObjectiveHud,
@@ -40,6 +41,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     this.screenInspections = 0;
     this.stampMarks = [];
     this.state = new GameState(this.registry);
+    syncSceneAudio(this, 'interior');
     this.state.setFlag('enteredPermitOffice');
     this.add.image(0, 0, layout.background).setOrigin(0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT).setDepth(DEPTH.background);
 
@@ -256,6 +258,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     ]);
     this.state.setFlag('form12Presented');
     this.createForm12Prop();
+    playSfx(this, 'formSwoosh');
     await showToast(this, 'RECEIVED: FORM 12-C — APPROXIMATELY 11.4 FEET');
     this.clerk.setTexture('clerkTalk');
     await showDialogue(this, [
@@ -278,6 +281,7 @@ export class PermitOfficeScene extends Phaser.Scene {
       .setData('vest', false);
     await this.hud.enterFeralMode();
     this.setFeralPose();
+    getAudio(this).startRage();
     await showToast(this, 'NEW MECHANIC UNLOCKED: RACCOON');
     this.ensureForm12Hotspot();
     this.refreshExitPrompt();
@@ -288,6 +292,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     this.busy = true;
     const form = this.createForm12Prop();
     this.jimothy.setTexture('jimothyEat').setScale(1.05).setFlipX(false);
+    playSfx(this, 'eatForm');
 
     if (!this.state.has('form12PartiallyEaten')) {
       const halfEatenScaleX = form.scaleX * (HALF_EATEN_FORM_WIDTH / form.displayWidth);
@@ -371,7 +376,7 @@ export class PermitOfficeScene extends Phaser.Scene {
   async ringBell() {
     if (this.busy) return;
     this.busy = true;
-    await showDialogue(this, [{ speaker: 'Service bell', text: 'DING.' }]);
+    await showDialogue(this, [{ speaker: 'Service bell', text: 'DING.', sound: 'bell' }]);
 
     if (this.state.has('feralMode')
       && this.state.has('deskTaken')
@@ -444,7 +449,7 @@ export class PermitOfficeScene extends Phaser.Scene {
         await showDialogue(this, [
           { speaker: 'Jimothy', text: 'Jimothy reaches very slowly for the pen.' },
           { speaker: 'System', text: 'The clerk watches Jimothy, judgingly.' },
-          { speaker: 'Chained pen', text: 'CLINK.' },
+          { speaker: 'Chained pen', text: 'CLINK.', sound: 'penChain' },
           { speaker: 'System', text: 'The pen cannot be removed.' },
           { speaker: 'Clerk', text: 'Purpose of visit?' },
         ]);
@@ -488,7 +493,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     };
     const residenceResponse = residence === 'pen' ? [
       { speaker: 'System', text: responses.pen },
-      { speaker: 'Chained pen', text: 'CLINK.' },
+      { speaker: 'Chained pen', text: 'CLINK.', sound: 'penChain' },
       { speaker: 'System', text: 'The pen cannot be removed.' },
     ] : [{ speaker: 'Clerk', text: responses[residence] }];
     await showDialogue(this, [
@@ -692,6 +697,7 @@ export class PermitOfficeScene extends Phaser.Scene {
         ease: 'Back.easeIn',
         onComplete: resolve,
       })) : Promise.resolve();
+      playSfx(this, 'deskCrash');
       await Promise.all([
         disappear,
         spill(this.counterFormStack, 460, 1070, -72),
@@ -737,7 +743,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     }
     await showDialogue(this, [
       { speaker: 'Jimothy', text: 'Jimothy reaches for the pen.' },
-      { speaker: 'Chained pen', text: 'CLINK.' },
+      { speaker: 'Chained pen', text: 'CLINK.', sound: 'penChain' },
       { speaker: 'Jimothy', text: 'PROPERTY OF MUNICIPAL SERVICES.' },
       { speaker: 'Jimothy', text: 'The pen is more securely housed than Jimothy.' },
     ]);
@@ -823,6 +829,7 @@ export class PermitOfficeScene extends Phaser.Scene {
       choices: [{ label: 'STAMP EVERYTHING', value: 'stamp', feral: true }],
     });
     for (const mark of this.getStampRampageMarks()) {
+      playSfx(this, this.stampMarks.length % 2 === 0 ? 'stamp1' : 'stamp2');
       const impression = this.createStampMark(mark, true);
       const impactText = this.add.text(mark.x, mark.y - 70, 'THUNK', {
         fontFamily: 'Arial Black, Arial, sans-serif',

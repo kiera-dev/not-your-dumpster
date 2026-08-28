@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
 import { DEPTH, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig.js';
+import { createAudioControl, playSfx } from './audio.js';
 
 const PAPER = 0xf1e4c7;
 const INK = '#261b18';
 
 export function createObjectiveHud(scene, gameState) {
+  createAudioControl(scene);
   const rageTextureKey = 'rageVignetteTexture';
   if (!scene.textures.exists(rageTextureKey)) {
     const texture = scene.textures.createCanvas(rageTextureKey, GAME_WIDTH, GAME_HEIGHT);
@@ -199,7 +201,10 @@ export function createSceneExit(scene, text, onClick) {
   }).setOrigin(1, 0.5).setDepth(DEPTH.ui + 2);
   panel.on('pointerover', () => panel.setFillStyle(0xfff2d3));
   panel.on('pointerout', () => panel.setFillStyle(PAPER));
-  panel.on('pointerdown', onClick);
+  panel.on('pointerdown', () => {
+    playSfx(scene, 'uiClick');
+    onClick();
+  });
   return { panel, label };
 }
 
@@ -230,12 +235,14 @@ export function showDialogue(scene, lines) {
         .setText(line.text)
         .setFontSize(line.fontSize ?? 36)
         .setFontStyle(line.fontStyle ?? 'normal');
+      if (line.sound) playSfx(scene, line.sound);
     };
     const destroy = () => {
       [shade, box, speaker, body, prompt, clickShield].forEach((item) => item.destroy());
       resolve();
     };
     clickShield.on('pointerdown', () => {
+      playSfx(scene, 'uiClick');
       index += 1;
       if (index >= lines.length) destroy();
       else render();
@@ -293,6 +300,7 @@ export function showChoice(scene, { speaker, text, choices }) {
       button.on('pointerover', () => button.setFillStyle(0xeadab9));
       button.on('pointerout', () => button.setFillStyle(0xd8c7a7));
       button.on('pointerdown', () => {
+        playSfx(scene, 'uiClick');
         wiggles.forEach((wiggle) => wiggle.remove());
         created.forEach((item) => item.destroy());
         resolve(choice.value);
@@ -302,12 +310,13 @@ export function showChoice(scene, { speaker, text, choices }) {
   });
 }
 
-export function showToast(scene, text, { duration = 2550 } = {}) {
+export function showToast(scene, text, { duration = 2550, sound = true } = {}) {
   return new Promise((resolve) => {
+    if (sound) playSfx(scene, 'inventoryUpdated');
     const width = 900;
-    const panel = scene.add.rectangle(GAME_WIDTH - 42, 42, width, 104, PAPER, 0.98)
+    const panel = scene.add.rectangle(GAME_WIDTH - 42, 82, width, 104, PAPER, 0.98)
       .setOrigin(1, 0).setStrokeStyle(5, 0x382824).setDepth(DEPTH.ui + 10);
-    const label = scene.add.text(GAME_WIDTH - 72, 94, text, {
+    const label = scene.add.text(GAME_WIDTH - 72, 134, text, {
       fontFamily: 'Georgia, serif', fontStyle: 'bold', fontSize: '27px', color: INK,
       wordWrap: { width: width - 60 },
       align: 'right',

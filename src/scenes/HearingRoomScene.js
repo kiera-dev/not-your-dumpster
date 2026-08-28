@@ -3,6 +3,7 @@ import { DEPTH, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig.js';
 import { SCENE_LAYOUTS } from '../config/sceneLayouts.js';
 import { GameState } from '../state/GameState.js';
 import { autoWaddle, createJimothy } from '../systems/Jimothy.js';
+import { syncSceneAudio } from '../systems/audio.js';
 import {
   createHotspot,
   createObjectiveHud,
@@ -22,6 +23,7 @@ export class HearingRoomScene extends Phaser.Scene {
     this.busy = true;
     this.exitPrompt = null;
     this.state = new GameState(this.registry);
+    syncSceneAudio(this, 'interior');
     this.add.image(0, 0, layout.background).setOrigin(0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT).setDepth(DEPTH.background);
 
     const addPlaced = (texture, item) => this.add.image(item.x, item.y, texture)
@@ -83,7 +85,7 @@ export class HearingRoomScene extends Phaser.Scene {
     if (this.busy) return;
     this.busy = true;
     await showDialogue(this, [
-      { speaker: 'Jimothy', text: 'Another. Chained. Pen.' },
+      { speaker: 'Jimothy', text: 'Another. Chained. Pen.', sound: 'penChain' },
       { speaker: 'Jimothy', text: 'Jimothy is beginning to suspect this goes all the way to the top.' },
     ]);
     this.busy = false;
@@ -200,7 +202,7 @@ export class HearingRoomScene extends Phaser.Scene {
       { speaker: 'Crow', text: 'The Dumpster Access Permit is theref-' },
       { speaker: 'Pigeon', text: 'Form 12-C is missing.' },
       { speaker: 'Crow', text: '...of course it is.' },
-      { speaker: 'Crow', text: 'DENIED.' },
+      { speaker: 'Crow', text: 'DENIED.', sound: 'stamp2' },
     ]);
     this.state.setFlag('hearingComplete');
     this.state.setFlag('needsJurisdictionReview', false);

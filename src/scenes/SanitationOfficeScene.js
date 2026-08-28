@@ -3,6 +3,7 @@ import { DEPTH, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig.js';
 import { SCENE_LAYOUTS } from '../config/sceneLayouts.js';
 import { GameState } from '../state/GameState.js';
 import { autoWaddle, createJimothy } from '../systems/Jimothy.js';
+import { playSfx, syncSceneAudio } from '../systems/audio.js';
 import {
   createHotspot,
   createObjectiveHud,
@@ -22,6 +23,7 @@ export class SanitationOfficeScene extends Phaser.Scene {
     this.busy = true;
     this.exitPrompt = null;
     this.state = new GameState(this.registry);
+    syncSceneAudio(this, 'interior');
     this.add.image(0, 0, layout.background).setOrigin(0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT).setDepth(DEPTH.background);
 
     const addPlaced = (texture, item) => this.add.image(item.x, item.y, texture)
@@ -197,6 +199,7 @@ export class SanitationOfficeScene extends Phaser.Scene {
       this.jimothy.setTexture('jimothyVestInteriorWalk1');
       this.jimothy.setData('idleKey', 'jimothyVestInteriorWalk1');
       this.jimothy.setData('vest', true);
+      playSfx(this, 'vestEquip');
       await showToast(this, 'EQUIPPED: MUNICIPAL SAFETY VEST');
       await showDialogue(this, [
         { speaker: 'Sanitation official', text: 'There.' },
@@ -322,7 +325,7 @@ export class SanitationOfficeScene extends Phaser.Scene {
     if (!this.state.has('bananaSorted') || !this.state.has('foilSorted') || !this.state.has('spoonSorted')) return;
     this.busy = true;
     this.setBeaverTexture('beaverStamp');
-    await showDialogue(this, [{ speaker: 'Sanitation official', text: 'Passed.' }]);
+    await showDialogue(this, [{ speaker: 'Sanitation official', text: 'Passed.', sound: 'stamp1' }]);
     this.state.setFlag('sanitationComplete');
     this.state.setFlag('hasSanitationCertification');
     this.state.setFlag('hasDollarThirteen');
@@ -367,7 +370,7 @@ export class SanitationOfficeScene extends Phaser.Scene {
     this.busy = true;
     await showDialogue(this, [
       { speaker: 'Jimothy', text: 'Jimothy tries to take the pen.' },
-      { speaker: 'Chained pen', text: 'CLINK.' },
+      { speaker: 'Chained pen', text: 'CLINK.', sound: 'penChain' },
       { speaker: 'Jimothy', text: 'The municipal pen containment program appears to be extremely well funded.' },
       { speaker: 'Jimothy', text: 'The beaver does not notice.' },
     ]);

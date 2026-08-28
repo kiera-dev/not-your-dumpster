@@ -3,6 +3,7 @@ import { DEPTH, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig.js';
 import { SCENE_LAYOUTS, SPRITE_META } from '../config/sceneLayouts.js';
 import { GameState } from '../state/GameState.js';
 import { autoWaddle, createJimothy } from '../systems/Jimothy.js';
+import { getAudio, playSfx, syncSceneAudio } from '../systems/audio.js';
 import {
   createHotspot,
   createObjectiveHud,
@@ -27,6 +28,7 @@ export class AlleyScene extends Phaser.Scene {
     this.coneHotspot = null;
     this.cone = null;
     this.state = new GameState(this.registry);
+    syncSceneAudio(this, 'alley');
     this.add.image(0, 0, layout.background).setOrigin(0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT).setDepth(DEPTH.background);
 
     const dumpsterKey = this.state.has('dumpsterOpened') ? 'dumpsterOpen' : 'dumpsterClosed';
@@ -105,6 +107,7 @@ export class AlleyScene extends Phaser.Scene {
     this.jimothy.setTexture('jimothyInteract');
     this.state.setFlag('dumpsterOpened');
     this.dumpster.setTexture('dumpsterOpen');
+    playSfx(this, 'dumpsterOpen');
     fadeToScene(this, 'DumpsterReveal');
   }
 
@@ -224,6 +227,7 @@ export class AlleyScene extends Phaser.Scene {
       ],
     });
     if (action === 'move') {
+      playSfx(this, 'coneMove');
       await new Promise((resolve) => this.tweens.add({
         targets: this.cone,
         x: this.cone.x - 45,
@@ -286,6 +290,7 @@ export class AlleyScene extends Phaser.Scene {
     rageShake.remove();
     this.jimothy.setPosition(1640, 1070);
     this.cameras.main.shake(220, 0.006);
+    playSfx(this, 'coneKick');
     await new Promise((resolve) => this.tweens.add({
       targets: this.cone,
       x: GAME_WIDTH + 360,
@@ -307,6 +312,7 @@ export class AlleyScene extends Phaser.Scene {
       { speaker: 'Crow, somewhere', text: 'THAT WAS THE ENTIRE JURISDICTIONAL BOUNDARY!' },
     ]);
     this.state.setFlag('rageVisualsComplete');
+    getAudio(this).stopRage();
     this.jimothy
       .setTexture('jimothyIdle')
       .setScale(SCENE_LAYOUTS.alley.jimothy.scaleX, SCENE_LAYOUTS.alley.jimothy.scaleY)

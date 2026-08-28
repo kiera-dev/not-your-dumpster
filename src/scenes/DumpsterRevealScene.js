@@ -2,6 +2,12 @@ import Phaser from 'phaser';
 import { DEPTH, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig.js';
 import { SCENE_LAYOUTS } from '../config/sceneLayouts.js';
 import { GameState } from '../state/GameState.js';
+import {
+  createAudioControl,
+  getAudio,
+  playSfx,
+  syncSceneAudio,
+} from '../systems/audio.js';
 import { createHotspot, createSceneExit, fadeToScene, showDialogue } from '../systems/ui.js';
 
 export class DumpsterRevealScene extends Phaser.Scene {
@@ -9,6 +15,8 @@ export class DumpsterRevealScene extends Phaser.Scene {
 
   create() {
     this.state = new GameState(this.registry);
+    syncSceneAudio(this, 'alley');
+    createAudioControl(this);
     const layout = SCENE_LAYOUTS.dumpsterReveal;
     this.busy = false;
     this.background = this.add.image(
@@ -17,6 +25,7 @@ export class DumpsterRevealScene extends Phaser.Scene {
       this.state.has('grapeAcquired') ? 'bgNoGrape' : layout.background,
     ).setOrigin(0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT).setDepth(DEPTH.background);
     this.state.setFlag('grapeSeen');
+    playSfx(this, 'dumpsterDive');
     if (this.state.has('grapeAcquired')) {
       this.showEnding();
       return;
@@ -62,6 +71,7 @@ export class DumpsterRevealScene extends Phaser.Scene {
       .setDepth(DEPTH.actor);
     this.state.setFlag('grapeAcquired');
     this.state.setPersonalObjective('GRAPE ACQUIRED');
+    playSfx(this, 'eatForm', { volume: 0.50, rate: 0.86 });
     await showDialogue(this, [
       { speaker: 'Jimothy', text: 'CRONCH.' },
       { speaker: 'Jimothy', text: 'Prrp.' },
@@ -111,6 +121,8 @@ export class DumpsterRevealScene extends Phaser.Scene {
     button.on('pointerout', () => button.setFillStyle(0xd8c7a7));
     button.on('pointerdown', () => {
       button.disableInteractive();
+      playSfx(this, 'uiClick');
+      getAudio(this).reset();
       this.state.reset();
       this.cameras.main.fadeOut(350, 22, 16, 15);
       this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Alley'));
