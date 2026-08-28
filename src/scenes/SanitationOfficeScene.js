@@ -332,7 +332,7 @@ export class SanitationOfficeScene extends Phaser.Scene {
     await showToast(this, 'CASE FILE UPDATED: SANITATION CERTIFICATION');
     await showToast(this, 'RECEIVED: $1.13');
     this.setTicker('SPOONS ▼ 96% — TRADING HALTED');
-    await this.hud.replaceCurrentObjective('PAY REFUSE TAX');
+    await this.hud.replaceCurrentObjective('PAY COMMERCIAL PROPERTY TAX');
     this.exitPrompt = createSceneExit(this, 'RETURN TO PERMIT OFFICE', () => this.useExit());
     this.setBeaverTexture('beaverIdle');
     this.busy = false;

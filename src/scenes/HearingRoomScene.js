@@ -172,13 +172,13 @@ export class HearingRoomScene extends Phaser.Scene {
     if (this.state.has('coneMovedEarly')) {
       this.setCrowTexture('crowIdle');
       await showDialogue(this, [
-        { speaker: 'Crow', text: 'Yes. The tribunal is already aware of the six inches.' },
+        { speaker: 'Crow', text: 'The tribunal is already aware of THE CONE boundary violation.' },
       ]);
       this.state.setFlag('hasConeCitation');
       void showToast(this, 'RECEIVED: CITATION: BS 0736.02 §(C)');
       await showDialogue(this, [{
         speaker: 'Crow',
-        text: 'You are receiving a sanction for violating BS 0736.02, subsection §C: Unauthorized Changing of Jurisdictional Boundaries. Come back for your hearing date on November 23, 2088.',
+        text: 'You are receiving a citation for violating BS 0736.02, subsection §C: Unauthorized Changing of Jurisdictional Boundaries. Come back for your hearing date on November 23, 2088.',
       }]);
     } else {
       this.state.setFlag('coneMovedByCity');

@@ -4,8 +4,8 @@ const STORAGE_KEY = 'not-your-dumpster-muted';
 const MASTER_VOLUME = 0.78;
 
 const AMBIENCE = Object.freeze({
-  alley: { key: 'alleyAmbience', volume: 0.22, overlapMs: 1800 },
-  interior: { key: 'officeAmbience', volume: 0.20, overlapMs: 2200 },
+  alley: { key: 'alleyAmbience', volume: 0.07, fadeInMs: 650 },
+  interior: { key: 'officeAmbience', volume: 0.06, fadeInMs: 650 },
 });
 
 const SFX_VOLUMES = Object.freeze({
@@ -79,33 +79,68 @@ class AudioDirector {
     return sound;
   }
 
-  fadeSound(sound, toVolume, duration = 500, destroyAfter = false) {
+  fadeSound(sound, toVolume, duration = 500, destroyAfter = false, onComplete = null) {
     if (!sound?.isPlaying) {
       if (destroyAfter) sound?.destroy();
+      onComplete?.();
       return;
     }
     const fromVolume = sound.volume;
     const startedAt = performance.now();
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      this.game.events.off('step', update);
+      if (destroyAfter) {
+        sound.stop();
+        sound.destroy();
+      }
+      onComplete?.();
+    };
     const update = () => {
       if (!sound.isPlaying) {
-        this.game.events.off('step', update);
-        if (destroyAfter) sound.destroy();
+        finish();
         return;
       }
       const progress = Math.min(1, (performance.now() - startedAt) / duration);
       sound.setVolume(fromVolume + ((toVolume - fromVolume) * progress));
-      if (progress >= 1) {
-        this.game.events.off('step', update);
-        if (destroyAfter) {
-          sound.stop();
-          sound.destroy();
-        }
-      }
+      if (progress >= 1) finish();
     };
     this.game.events.on('step', update);
   }
 
-  startCrossfadeLoop(name, key, { volume, overlapMs }) {
+  startSimpleLoop(name, key, { volume, fadeInMs = 650 }) {
+    this.stopLoop(name, 650);
+    const loop = {
+      active: true,
+      key,
+      volume,
+      sounds: new Set(),
+      timer: null,
+    };
+    this.loops.set(name, loop);
+
+    const launch = () => {
+      if (!loop.active || this.sound.locked) return;
+      const next = this.sound.add(key, { volume: 0, loop: true });
+      loop.sounds.add(next);
+      next.once('complete', () => {
+        loop.sounds.delete(next);
+        next.destroy();
+      });
+      if (!next.play()) {
+        loop.sounds.delete(next);
+        next.destroy();
+        return;
+      }
+      this.fadeSound(next, volume, fadeInMs);
+    };
+    loop.launch = launch;
+    launch();
+  }
+
+  startCrossfadeLoop(name, key, { volume, overlapMs, fadeInMs = overlapMs }) {
     this.stopLoop(name, 650);
     const loop = {
       active: true,
@@ -119,6 +154,7 @@ class AudioDirector {
 
     const launch = () => {
       if (!loop.active || this.sound.locked) return;
+      const outgoing = [...loop.sounds].filter((sound) => sound.isPlaying);
       const next = this.sound.add(key, { volume: 0 });
       loop.sounds.add(next);
       next.once('complete', () => {
@@ -130,7 +166,14 @@ class AudioDirector {
         next.destroy();
         return;
       }
-      this.fadeSound(next, volume, Math.min(900, overlapMs));
+      outgoing.forEach((sound) => this.fadeSound(
+        sound,
+        0,
+        overlapMs,
+        true,
+        () => loop.sounds.delete(sound),
+      ));
+      this.fadeSound(next, volume, fadeInMs);
       const nextLaunchMs = Math.max(1000, (next.duration * 1000) - overlapMs);
       loop.timer = window.setTimeout(launch, nextLaunchMs);
     };
@@ -161,7 +204,7 @@ class AudioDirector {
     const currentLoop = this.loops.get('ambience');
     if (ambience) {
       if (currentLoop?.key !== ambience.key) {
-        this.startCrossfadeLoop('ambience', ambience.key, ambience);
+        this.startSimpleLoop('ambience', ambience.key, ambience);
       }
     } else {
       this.stopLoop('ambience', 650);
@@ -176,11 +219,13 @@ class AudioDirector {
     window.clearTimeout(this.rageStartTimer);
     this.rageStartTimer = window.setTimeout(() => {
       if (!this.rageActive) return;
+      this.rageStartTimer = null;
       this.startCrossfadeLoop('rageMusic', 'rageMusic', {
-        volume: 0.26,
-        overlapMs: 1800,
+        volume: 0.08,
+        overlapMs: 800,
+        fadeInMs: 1250,
       });
-    }, 3850);
+    }, 3250);
   }
 
   stopRage() {
@@ -200,7 +245,11 @@ class AudioDirector {
       if (loop.active && loop.sounds.size === 0) loop.launch();
     });
     if (this.rageActive && !this.loops.has('rageMusic') && !this.rageStartTimer) {
-      this.startCrossfadeLoop('rageMusic', 'rageMusic', { volume: 0.26, overlapMs: 1800 });
+      this.startCrossfadeLoop('rageMusic', 'rageMusic', {
+        volume: 0.08,
+        overlapMs: 800,
+        fadeInMs: 1250,
+      });
     } else if (!this.rageActive && this.desiredAmbience && !this.loops.has('ambience')) {
       this.setLocation(this.desiredAmbience);
     }
@@ -238,20 +287,17 @@ export function createAudioControl(scene) {
     .setScrollFactor(0)
     .setDepth(DEPTH.ui + 30)
     .setInteractive({ cursor: 'pointer' });
-  const label = scene.add.text(x - (width / 2), y + (height / 2), '', {
+  const label = scene.add.text(x - (width / 2), y + (height / 2), 'SOUND ON/OFF', {
     fontFamily: 'Arial, sans-serif',
     fontStyle: 'bold',
     fontSize: '20px',
     color: '#f1e4c7',
   }).setOrigin(0.5).setScrollFactor(0).setDepth(DEPTH.ui + 31);
-  const render = () => label.setText(audio.isMuted() ? 'SOUND: OFF' : 'SOUND: ON');
-  render();
   panel.on('pointerdown', () => {
     const wasMuted = audio.isMuted();
     if (!wasMuted) playSfx(scene, 'uiClick');
     audio.toggleMuted();
     if (wasMuted) playSfx(scene, 'uiClick');
-    render();
   });
   return { panel, label };
 }

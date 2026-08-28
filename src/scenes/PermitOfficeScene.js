@@ -539,11 +539,11 @@ export class PermitOfficeScene extends Phaser.Scene {
       { speaker: 'Clerk', text: 'Current resident… Behind Container 7-C.' },
       { speaker: 'Clerk', text: 'Oh.' },
       { speaker: 'Clerk', text: 'That dumpster is zoned commercial.' },
-      { speaker: 'Clerk', text: 'You have an outstanding property-tax liability.' },
+      { speaker: 'Clerk', text: 'You have an outstanding commercial property-tax liability.' },
     ]);
     this.state.setFlag('taxDebtKnown');
     await showToast(this, 'BALANCE DUE: $1.13');
-    await this.hud.replaceCurrentObjective('RESOLVE OUTSTANDING REFUSE TAX LIABILITY');
+    await this.hud.replaceCurrentObjective('RESOLVE OUTSTANDING COMMERCIAL PROPERTY-TAX LIABILITY');
 
     const payment = await showChoice(this, {
       speaker: 'Jimothy',
@@ -584,7 +584,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     this.clerk.setTexture('clerkPaperwork');
     await showDialogue(this, [
       { speaker: 'Clerk', text: 'Residency verified.' },
-      { speaker: 'Clerk', text: 'Tax liability resolved.' },
+      { speaker: 'Clerk', text: 'Commercial property-tax liability resolved.' },
       { speaker: 'Clerk', text: 'Responsible refuse handling certified.' },
       { speaker: 'Clerk', text: 'One moment.' },
       { speaker: 'Clerk', text: 'Container 7-C sits directly on a jurisdictional boundary.' },
@@ -880,7 +880,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     await showToast(this, 'ACQUIRED: MUNICIPAL AUTHORITY STAMP');
     await showDialogue(this, [{ speaker: 'Clerk', text: 'That does not make you municipal authority.' }]);
     await this.stampEverything();
-    await showDialogue(this, [{ speaker: 'Clerk', text: 'That made it significantly worse.' }]);
+    await showDialogue(this, [{ speaker: 'Clerk', text: 'This office is significantly worse.' }]);
     if (this.state.has('deskTaken')) {
       await this.hud.replaceCurrentObjective('RETURN TO DUMPSTER');
       this.refreshExitPrompt();
