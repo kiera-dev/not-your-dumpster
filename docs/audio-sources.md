@@ -9,8 +9,8 @@ screen; none of the current sources require attribution.
 - License noted at download: royalty-free personal and commercial use; credit not
   required. The source prohibits use in national-government, law-enforcement,
   SPLC-designated hate-group, and CAHN-designated hate-group projects.
-- User-created/edited audio in the same batch includes the alley ambience and
-  office ambience, and original rage sting.
+- User-created/edited audio in the same batch includes the alley ambience,
+  office ambience, original rage sting, grape crunch, and grape celebration.
 
 ## Rage music
 

@@ -90,6 +90,7 @@ export const AUDIO_ASSETS = Object.freeze({
   bell: audioSources('sfx', 'bell'),
   coneKick: audioSources('sfx', 'cone-kick'),
   coneMove: audioSources('sfx', 'cone-move'),
+  cronchGrape: audioSources('sfx', 'cronch-grape'),
   deskCrash: audioSources('sfx', 'desk-crash'),
   dumpsterDive: audioSources('sfx', 'dumpster-dive'),
   dumpsterOpen: audioSources('sfx', 'dumpster-lid'),
@@ -102,5 +103,6 @@ export const AUDIO_ASSETS = Object.freeze({
   stamp2: audioSources('sfx', 'stamp-2'),
   uiClick: audioSources('sfx', 'ui-click'),
   vestEquip: audioSources('sfx', 'vest-equip'),
+  yayGrape: audioSources('sfx', 'yay-grape'),
   rageMusic: [`${A}/audio/music/future-anno-domini-beats.mp3`],
 });

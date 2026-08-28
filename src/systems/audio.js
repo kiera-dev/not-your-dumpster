@@ -12,6 +12,7 @@ const SFX_VOLUMES = Object.freeze({
   bell: 0.42,
   coneKick: 0.62,
   coneMove: 0.38,
+  cronchGrape: 0.50,
   deskCrash: 0.52,
   dumpsterDive: 0.42,
   dumpsterOpen: 0.48,
@@ -24,6 +25,7 @@ const SFX_VOLUMES = Object.freeze({
   stamp2: 0.50,
   uiClick: 0.20,
   vestEquip: 0.40,
+  yayGrape: 0.52,
 });
 
 function readMutedPreference() {

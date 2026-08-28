@@ -71,17 +71,19 @@ export class DumpsterRevealScene extends Phaser.Scene {
       .setDepth(DEPTH.actor);
     this.state.setFlag('grapeAcquired');
     this.state.setPersonalObjective('GRAPE ACQUIRED');
-    playSfx(this, 'eatForm', { volume: 0.50, rate: 0.86 });
+    playSfx(this, 'cronchGrape');
     await showDialogue(this, [
       { speaker: 'Jimothy', text: 'CRONCH.' },
       { speaker: 'Jimothy', text: 'Prrp.' },
     ]);
     eater.destroy();
     this.state.setFlag('endingComplete');
+    await new Promise((resolve) => this.time.delayedCall(300, resolve));
     this.showEnding();
   }
 
   showEnding() {
+    playSfx(this, 'yayGrape');
     const shade = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x16100f, 0.78)
       .setOrigin(0)
       .setDepth(DEPTH.ui + 20);
