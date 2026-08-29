@@ -1,3 +1,16 @@
+@font-face {
+  font-family: "Vast Shadow";
+  src: url("/assets/fonts/VastShadow-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Stardos Stencil";
+  src: url("/assets/fonts/StardosStencil-Bold.ttf") format("truetype");
+  font-display: swap;
+  font-weight: 700;
+}
+
 :root {
   color-scheme: dark;
   font-family: Georgia, "Times New Roman", serif;

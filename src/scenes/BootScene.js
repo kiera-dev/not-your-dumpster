@@ -15,9 +15,15 @@ export class BootScene extends Phaser.Scene {
     Object.entries(AUDIO_ASSETS).forEach(([key, paths]) => this.load.audio(key, paths));
   }
 
-  create() {
+  async create() {
     getAudio(this);
     registerWaddles(this);
-    this.scene.start('Alley');
+    if (document.fonts) {
+      await Promise.all([
+        document.fonts.load('16px "Vast Shadow"'),
+        document.fonts.load('700 16px "Stardos Stencil"'),
+      ]);
+    }
+    this.scene.start('Title');
   }
 }

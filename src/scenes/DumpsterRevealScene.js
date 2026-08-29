@@ -127,7 +127,7 @@ export class DumpsterRevealScene extends Phaser.Scene {
       getAudio(this).reset();
       this.state.reset();
       this.cameras.main.fadeOut(350, 22, 16, 15);
-      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Alley'));
+      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Title'));
     });
     this.tweens.add({
       targets: [panel, title, body, button, buttonLabel],

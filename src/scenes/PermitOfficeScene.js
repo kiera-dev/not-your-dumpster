@@ -483,7 +483,7 @@ export class PermitOfficeScene extends Phaser.Scene {
         { label: 'DUMPSTER', value: 'dumpster' },
         { label: 'RACCOON', value: 'raccoon' },
         { label: 'POINT OUTSIDE', value: 'outside' },
-        { label: 'TAKE PEN NOW', value: 'pen' },
+        { label: 'SLOWLY TAKE PEN', value: 'pen' },
       ],
     });
 

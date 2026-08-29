@@ -4,6 +4,7 @@ import { createAudioControl, playSfx } from './audio.js';
 
 const PAPER = 0xf1e4c7;
 const INK = '#261b18';
+const DIALOGUE_WIDTH_RATIO = 0.6;
 
 export function createObjectiveHud(scene, gameState) {
   createAudioControl(scene);
@@ -234,18 +235,20 @@ export function createSceneExit(scene, text, onClick) {
 export function showDialogue(scene, lines) {
   return new Promise((resolve) => {
     let index = 0;
+    const boxX = 84;
+    const boxWidth = GAME_WIDTH * DIALOGUE_WIDTH_RATIO;
     const shade = scene.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.12)
       .setOrigin(0).setDepth(DEPTH.ui + 5);
-    const box = scene.add.rectangle(84, GAME_HEIGHT - 320, GAME_WIDTH - 168, 250, PAPER, 0.98)
+    const box = scene.add.rectangle(boxX, GAME_HEIGHT - 320, boxWidth, 250, PAPER, 0.98)
       .setOrigin(0).setStrokeStyle(7, 0x382824).setDepth(DEPTH.ui + 6);
     const speaker = scene.add.text(126, GAME_HEIGHT - 286, '', {
       fontFamily: 'Georgia, serif', fontStyle: 'bold', fontSize: '34px', color: INK,
     }).setDepth(DEPTH.ui + 7);
     const body = scene.add.text(126, GAME_HEIGHT - 232, '', {
       fontFamily: 'Georgia, serif', fontSize: '36px', color: INK,
-      wordWrap: { width: GAME_WIDTH - 260 }, lineSpacing: 8,
+      wordWrap: { width: boxWidth - 84 }, lineSpacing: 8,
     }).setDepth(DEPTH.ui + 7);
-    const prompt = scene.add.text(GAME_WIDTH - 128, GAME_HEIGHT - 104, 'CLICK TO CONTINUE  ›', {
+    const prompt = scene.add.text(boxX + boxWidth - 44, GAME_HEIGHT - 104, 'CLICK TO CONTINUE  ›', {
       fontFamily: 'Arial, sans-serif', fontSize: '20px', color: '#604940',
     }).setOrigin(1, 1).setDepth(DEPTH.ui + 7);
     const clickShield = scene.add.zone(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT)
@@ -276,28 +279,33 @@ export function showDialogue(scene, lines) {
 
 export function showChoice(scene, { speaker, text, choices }) {
   return new Promise((resolve) => {
+    const boxX = 84;
+    const boxWidth = GAME_WIDTH * DIALOGUE_WIDTH_RATIO;
+    const contentX = boxX + 42;
+    const contentWidth = boxWidth - 84;
     const shade = scene.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.16)
       .setOrigin(0).setDepth(DEPTH.ui + 5);
     const boxY = GAME_HEIGHT - 390;
-    const box = scene.add.rectangle(84, boxY, GAME_WIDTH - 168, 320, PAPER, 0.99)
+    const box = scene.add.rectangle(boxX, boxY, boxWidth, 320, PAPER, 0.99)
       .setOrigin(0).setStrokeStyle(7, 0x382824).setDepth(DEPTH.ui + 6);
-    const speakerText = scene.add.text(126, boxY + 28, speaker.toUpperCase(), {
+    const speakerText = scene.add.text(contentX, boxY + 28, speaker.toUpperCase(), {
       fontFamily: 'Georgia, serif', fontStyle: 'bold', fontSize: '31px', color: INK,
     }).setDepth(DEPTH.ui + 7);
-    const body = scene.add.text(126, boxY + 76, text, {
+    const body = scene.add.text(contentX, boxY + 76, text, {
       fontFamily: 'Georgia, serif', fontSize: '32px', color: INK,
-      wordWrap: { width: GAME_WIDTH - 260 },
+      wordWrap: { width: contentWidth },
     }).setDepth(DEPTH.ui + 7);
     const created = [shade, box, speakerText, body];
     const wiggles = [];
     const rageChoice = choices.some((choice) => choice.feral);
-    const buttonWidth = rageChoice ? GAME_WIDTH - 252 : 820;
+    const columnGap = 48;
+    const buttonWidth = rageChoice ? contentWidth : (contentWidth - columnGap) / 2;
     const buttonHeight = rageChoice ? 86 : 56;
 
     choices.forEach((choice, index) => {
       const column = rageChoice ? 0 : index % 2;
       const row = rageChoice ? index : Math.floor(index / 2);
-      const x = 126 + column * 910;
+      const x = contentX + column * (buttonWidth + columnGap);
       const y = boxY + 170 + row * (rageChoice ? 98 : 70);
       const button = scene.add.rectangle(x, y, buttonWidth, buttonHeight, 0xd8c7a7, 1)
         .setOrigin(0).setStrokeStyle(3, 0x604940).setDepth(DEPTH.ui + 7)
