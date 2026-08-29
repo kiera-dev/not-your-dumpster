@@ -143,22 +143,40 @@ export class TitleScene extends Phaser.Scene {
       fontSize: '64px',
       color: '#6f2722',
     }).setDepth(DEPTH.ui + 2);
-    const filing = this.add.text(190, 612, 'FORM 0-A: REQUEST TO BEGIN', {
+    const formNumber = this.add.text(190, 584, 'FORM 0-A:', {
       fontFamily: 'Arial, sans-serif',
       fontStyle: 'bold',
       fontSize: '32px',
       color: '#604940',
       letterSpacing: 2,
     }).setDepth(DEPTH.ui + 2);
-    const filingRule = this.add.rectangle(190, 736, 660, 3, 0x604940, 0.72)
-      .setOrigin(0)
-      .setDepth(DEPTH.ui + 2);
-    const filingPrompt = this.add.text(190, 770, 'CLICK ANYWHERE TO FILE FORM 0-A', {
+    const request = this.add.text(
+      190,
+      632,
+      'FORMAL REQUEST TO ENTER MUNICIPAL REFUSE CORRIDOR 3-B',
+      {
+        fontFamily: 'Arial, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '28px',
+        color: INK,
+        wordWrap: { width: 1080 },
+      },
+    ).setDepth(DEPTH.ui + 2);
+    const filingDetails = this.add.text(
+      190,
+      706,
+      'PURPOSE OF ENTRY:  PENDING\nAPPLICANT SPECIES:  UNCONFIRMED\nNUMBER OF GRAPES REQUESTED:  ONE (1)\nAPPLICATION STATUS:  UNFILED',
+      {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '23px',
+        color: '#604940',
+        lineSpacing: 12,
+      },
+    ).setDepth(DEPTH.ui + 2);
+    const filingPrompt = this.add.text(150, 920, '[click anywhere to submit form]', {
       fontFamily: 'Arial, sans-serif',
-      fontStyle: 'bold',
-      fontSize: '28px',
-      color: INK,
-      letterSpacing: 1,
+      fontSize: '20px',
+      color: '#837268',
     }).setDepth(DEPTH.ui + 2);
     this.approvedStamp = this.add.image(1000, 790, 'approvedStamp')
       .setDisplaySize(620, 241)
