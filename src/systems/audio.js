@@ -20,7 +20,7 @@ const SFX_VOLUMES = Object.freeze({
   formSwoosh: 0.40,
   inventoryUpdated: 0.34,
   penChain: 0.44,
-  rageSting: 0.66,
+  rageSting: 0.35,
   stamp1: 0.50,
   stamp2: 0.50,
   uiClick: 0.20,
@@ -50,6 +50,7 @@ class AudioDirector {
     this.sound = scene.sound;
     this.loops = new Map();
     this.rageActive = false;
+    this.rageStingSound = null;
     this.rageStartTimer = null;
     this.desiredAmbience = null;
     this.sound.volume = MASTER_VOLUME;
@@ -217,7 +218,7 @@ class AudioDirector {
     if (this.rageActive) return;
     this.rageActive = true;
     this.stopLoop('ambience', 450);
-    this.playSfx('rageSting');
+    this.rageStingSound = this.playSfx('rageSting');
     window.clearTimeout(this.rageStartTimer);
     this.rageStartTimer = window.setTimeout(() => {
       if (!this.rageActive) return;
@@ -227,6 +228,11 @@ class AudioDirector {
         overlapMs: 800,
         fadeInMs: 1250,
       });
+      if (this.rageStingSound?.isPlaying) {
+        const sting = this.rageStingSound;
+        this.rageStingSound = null;
+        this.fadeSound(sting, 0, 800, true);
+      }
     }, 3250);
   }
 
@@ -234,6 +240,10 @@ class AudioDirector {
     this.rageActive = false;
     window.clearTimeout(this.rageStartTimer);
     this.rageStartTimer = null;
+    if (this.rageStingSound?.isPlaying) {
+      this.fadeSound(this.rageStingSound, 0, 250, true);
+    }
+    this.rageStingSound = null;
     this.stopLoop('rageMusic', 1100);
     if (this.desiredAmbience) {
       window.setTimeout(() => {

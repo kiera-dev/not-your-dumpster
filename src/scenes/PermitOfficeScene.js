@@ -292,9 +292,11 @@ export class PermitOfficeScene extends Phaser.Scene {
     this.busy = true;
     const form = this.createForm12Prop();
     this.jimothy.setTexture('jimothyEat').setScale(1.05).setFlipX(false);
-    playSfx(this, 'eatForm');
+    const firstBite = !this.state.has('form12PartiallyEaten');
+    playSfx(this, 'eatForm', { volume: 0.30 });
+    playSfx(this, 'cronchGrape', { volume: 0.27, rate: firstBite ? 1.08 : 0.92 });
 
-    if (!this.state.has('form12PartiallyEaten')) {
+    if (firstBite) {
       const halfEatenScaleX = form.scaleX * (HALF_EATEN_FORM_WIDTH / form.displayWidth);
       await new Promise((resolve) => this.tweens.add({
         targets: form,
@@ -382,7 +384,7 @@ export class PermitOfficeScene extends Phaser.Scene {
       && this.state.has('deskTaken')
       && !this.state.has('stampRampageComplete')) {
       await showDialogue(this, [
-        { speaker: 'Clerk', text: 'The bell is not the stamp.' },
+        { speaker: 'Clerk', text: 'Please stop summoning me. I am already witnessing this.' },
       ]);
       this.ensureRageStampHotspot();
       this.stamp?.setDepth(DEPTH.effect + 1);
@@ -441,9 +443,9 @@ export class PermitOfficeScene extends Phaser.Scene {
         purposeResolved = true;
       } else if (purpose === 'raccoon') {
         await showDialogue(this, [
-          { speaker: 'Clerk', text: 'Species?' },
+          { speaker: 'Clerk', text: 'That is your species.' },
           { speaker: 'Jimothy', text: 'Raccoon.' },
-          { speaker: 'Clerk', text: 'No. Sorry. Purpose of visit.' },
+          { speaker: 'Clerk', text: 'Yes. Purpose of visit?' },
         ]);
       } else if (purpose === 'pen') {
         await showDialogue(this, [
@@ -462,7 +464,7 @@ export class PermitOfficeScene extends Phaser.Scene {
       }
     }
 
-    this.clerk.setTexture('clerkPaperwork');
+    this.clerk.setTexture('clerkTalk');
     await showDialogue(this, [
       { speaker: 'Clerk', text: 'Dumpster access requires Form 8-B.' },
     ]);
@@ -511,7 +513,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     await showDialogue(this, [{ speaker: 'Clerk', text: 'This is a leaf.' }]);
     const answer = await showChoice(this, {
       speaker: 'Jimothy',
-      text: 'The leaf waits to be entered into evidence.',
+      text: 'The leaf waits to be administratively filed.',
       choices: [
         { label: 'YES', value: 'yes' },
         { label: 'RACCOON', value: 'raccoon' },
@@ -668,6 +670,7 @@ export class PermitOfficeScene extends Phaser.Scene {
         return;
       }
       await showDialogue(this, [
+        { speaker: 'Chained pen', text: 'CLINK.', sound: 'penChain' },
         { speaker: 'Jimothy', text: 'The pen cannot be removed from the desk.' },
       ]);
       await showChoice(this, {
@@ -878,9 +881,9 @@ export class PermitOfficeScene extends Phaser.Scene {
     this.stamp = null;
     this.stampHotspot = null;
     await showToast(this, 'ACQUIRED: MUNICIPAL AUTHORITY STAMP');
-    await showDialogue(this, [{ speaker: 'Clerk', text: 'That does not make you municipal authority.' }]);
+    await showDialogue(this, [{ speaker: 'Clerk', text: 'That does not make you a municipal authority.' }]);
     await this.stampEverything();
-    await showDialogue(this, [{ speaker: 'Clerk', text: 'This office is significantly worse.' }]);
+    await showDialogue(this, [{ speaker: 'Clerk', text: 'Authority recognized.' }]);
     if (this.state.has('deskTaken')) {
       await this.hud.replaceCurrentObjective('RETURN TO DUMPSTER');
       this.refreshExitPrompt();

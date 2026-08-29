@@ -37,7 +37,7 @@ export function createObjectiveHud(scene, gameState) {
   }
   const rageVignette = scene.add.container(0, 0, [
     scene.add.image(0, 0, rageTextureKey).setOrigin(0),
-    scene.add.text(GAME_WIDTH - 44, GAME_HEIGHT - 38, 'RAGE MODE', {
+    scene.add.text(GAME_WIDTH - 44, GAME_HEIGHT - 38, 'RACCOON RAGE MODE', {
       fontFamily: 'Arial Black, Arial, sans-serif',
       fontSize: '36px',
       color: '#a93b3b',
@@ -89,11 +89,12 @@ export function createObjectiveHud(scene, gameState) {
     if (!showRageVisuals && ragePulse.isPlaying()) ragePulse.pause();
     personalText.setText(state.personalObjective);
     currentText.setText(state.currentObjective);
-    panel.setDisplaySize(560, feral ? 300 : 248);
     currentHeading.setVisible(true);
     currentText.setVisible(true);
     personalText.setFontSize(feral ? 42 : 29).setY(96);
     currentText.setFontSize(feral ? 42 : 29).setY(196);
+    const contentHeight = currentText.y + currentText.height + 22 - panel.y;
+    panel.setDisplaySize(560, Math.max(feral ? 300 : 248, contentHeight));
   };
   render();
   scene.registry.events.on('changedata-gameState', render);
@@ -148,6 +149,28 @@ export function createObjectiveHud(scene, gameState) {
         scene.cameras.main.zoomTo(1.025, 110, 'Cubic.easeOut');
         scene.time.delayedCall(120, () => scene.cameras.main.zoomTo(1, 260, 'Back.easeOut'));
         scene.cameras.main.shake(180, 0.0045);
+        const rageMarquee = scene.add.text(
+          GAME_WIDTH + 80,
+          GAME_HEIGHT * 0.68,
+          'RACCOON RAGE MODE',
+          {
+            fontFamily: 'Arial Black, Arial, sans-serif',
+            fontSize: '92px',
+            color: '#b84343',
+            stroke: '#31040a',
+            strokeThickness: 12,
+          },
+        )
+          .setOrigin(0, 0.5)
+          .setDepth(DEPTH.ui + 8)
+          .setScrollFactor(0);
+        scene.tweens.add({
+          targets: rageMarquee,
+          x: -rageMarquee.width - 80,
+          duration: 2500,
+          ease: 'Linear',
+          onComplete: () => rageMarquee.destroy(),
+        });
         scene.tweens.add({
           targets: personalText,
           scale: { from: 0.82, to: 1 },

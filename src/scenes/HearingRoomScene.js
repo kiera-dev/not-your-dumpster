@@ -65,10 +65,9 @@ export class HearingRoomScene extends Phaser.Scene {
   }
 
   setCrowTexture(texture) {
-    this.crow.setTexture(texture).setDisplaySize(
-      this.layout.crow.displayWidth,
-      this.layout.crow.displayHeight,
-    );
+    const source = this.textures.get(texture).getSourceImage();
+    const height = this.layout.crow.displayHeight;
+    this.crow.setTexture(texture).setDisplaySize(height * (source.width / source.height), height);
   }
 
   async inspectApplicant() {
@@ -112,10 +111,10 @@ export class HearingRoomScene extends Phaser.Scene {
     this.setCrowTexture('crowTalk');
     await showDialogue(this, [
       { speaker: 'Crow', text: 'Municipal Services Hearing Room, case 7-C.' },
-      { speaker: 'Crow', text: 'Jimothy versus one grape, ownership pending.' },
+      { speaker: 'Crow', text: 'Jimothy versus one grape. Dumpster Access Permit and grape ownership pending.' },
       { speaker: 'Squirrel', text: 'The applicant has submitted Form 8-B, a notarized leaf, sanitation certification, and a receipt for one dollar and thirteen cents.' },
       { speaker: 'Pigeon', text: 'The leaf is upside down.' },
-      { speaker: 'Squirrel', text: 'It is a leaf....' },
+      { speaker: 'Squirrel', text: 'It is a leaf…' },
     ]);
 
     const oath = await showChoice(this, {
@@ -138,17 +137,17 @@ export class HearingRoomScene extends Phaser.Scene {
 
     await showDialogue(this, [
       { speaker: 'Crow', text: 'Container 7-C rests directly on a municipal jurisdictional boundary.' },
-      { speaker: 'Pigeon', text: 'The boundary is marked by a traffic cone. THE traffic CONE' },
+      { speaker: 'Pigeon', text: 'The boundary is marked by a traffic cone. THE CONE.' },
     ]);
     if (this.state.has('coneMovedEarly')) {
       await showDialogue(this, [
-        { speaker: 'Squirrel', text: 'Records indicate six inches west.' },
+        { speaker: 'Squirrel', text: 'Records indicate the boundary is now six inches west.' },
         { speaker: 'Pigeon', text: 'That is practically three governments.' },
       ]);
     } else {
       await showDialogue(this, [
         { speaker: 'Squirrel', text: 'A traffic cone legally defines the jurisdiction line.' },
-        { speaker: 'Pigeon', text: '...it is orange.' },
+        { speaker: 'Pigeon', text: '…It is orange.' },
       ]);
     }
     const cone = await showChoice(this, {
@@ -161,7 +160,12 @@ export class HearingRoomScene extends Phaser.Scene {
         { label: 'DEFINE “POSITION”', value: 'define' },
       ],
     });
-    const coneResponses = {
+    const coneResponses = this.state.has('coneMovedEarly') ? {
+      no: 'The municipal record strongly disagrees.',
+      six: 'The municipal record confirms six inches.',
+      raccoon: 'THE CONE is not a raccoon.',
+      define: 'The cited position is six inches west of the recorded position.',
+    } : {
       no: 'No CONE incident is presently attached to this docket.',
       six: 'Six inches is enough to require involving three districts.',
       raccoon: 'THE CONE is not a raccoon.',
@@ -175,10 +179,10 @@ export class HearingRoomScene extends Phaser.Scene {
         { speaker: 'Crow', text: 'The tribunal is already aware of THE CONE boundary violation.' },
       ]);
       this.state.setFlag('hasConeCitation');
-      void showToast(this, 'RECEIVED: CITATION: BS 0736.02 §(C)');
+      void showToast(this, 'RECEIVED: CITATION — BS 0736.02 §(C)');
       await showDialogue(this, [{
         speaker: 'Crow',
-        text: 'You are receiving a citation for violating BS 0736.02, subsection §C: Unauthorized Changing of Jurisdictional Boundaries. Come back for your hearing date on November 23, 2088.',
+        text: 'You are receiving a citation for violating BS 0736.02, subsection C: Unauthorized Changing of Jurisdictional Boundaries. Come back for your hearing date on November 23, 2088.',
       }]);
     } else {
       this.state.setFlag('coneMovedByCity');
@@ -198,10 +202,11 @@ export class HearingRoomScene extends Phaser.Scene {
 
     this.setCrowTexture('crowIdle');
     await showDialogue(this, [
-      { speaker: 'Crow', text: 'This tribunal finds that the applicant completed every requirement presented.' },
-      { speaker: 'Crow', text: 'The Dumpster Access Permit is theref-' },
+      { speaker: 'Crow', text: 'Since THE CONE has moved, the jurisdictional boundary now places Container 7-C entirely within this jurisdiction by one inch.' },
+      { speaker: 'Crow', text: 'This tribunal finds that the applicant completed every requirement presented for dumpster access.' },
+      { speaker: 'Crow', text: 'The Dumpster Access Permit is therefore—' },
       { speaker: 'Pigeon', text: 'Form 12-C is missing.' },
-      { speaker: 'Crow', text: '...of course it is.' },
+      { speaker: 'Crow', text: '…Of course it is.' },
       { speaker: 'Crow', text: 'DENIED.', sound: 'stamp2' },
     ]);
     this.state.setFlag('hearingComplete');

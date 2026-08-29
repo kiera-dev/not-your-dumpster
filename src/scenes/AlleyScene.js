@@ -80,6 +80,7 @@ export class AlleyScene extends Phaser.Scene {
     this.hud = createObjectiveHud(this, this.state);
 
     createHotspot(this, layout.dumpster.hotspot, () => this.inspectDumpster(), { label: 'Dumpster' });
+    this.installConeHotspot();
     if (this.state.has('clerkInterrupted')) this.installAlleyPropHotspots();
     if (this.state.has('needsResidencyProof') && !this.state.has('hasLeaf')) {
       this.leafHotspot = createHotspot(this, {
@@ -158,20 +159,24 @@ export class AlleyScene extends Phaser.Scene {
       width: 150,
       height: 120,
     }, () => this.inspectTakeout(), { label: 'Takeout container' });
-    if (this.cone) {
-      this.coneHotspot = createHotspot(this, {
-        x: this.cone.x,
-        y: evidence.theCone.y - 120,
-        width: 190,
-        height: 260,
-      }, () => this.inspectCone(), { label: 'THE CONE' });
-    }
+    this.installConeHotspot();
     createHotspot(this, {
       x: evidence.receipt.x,
       y: evidence.receipt.y - 20,
       width: 130,
       height: 110,
     }, () => this.inspectReceipt(), { label: 'Crumpled receipt' });
+  }
+
+  installConeHotspot() {
+    if (!this.cone || this.coneHotspot) return;
+    const evidence = SCENE_LAYOUTS.alley.evidence;
+    this.coneHotspot = createHotspot(this, {
+      x: this.cone.x,
+      y: evidence.theCone.y - 120,
+      width: 190,
+      height: 260,
+    }, () => this.inspectCone(), { label: 'THE CONE' });
   }
 
   async inspectTakeout() {

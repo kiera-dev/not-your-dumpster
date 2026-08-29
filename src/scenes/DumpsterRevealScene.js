@@ -138,5 +138,57 @@ export class DumpsterRevealScene extends Phaser.Scene {
     });
     shade.setAlpha(0);
     this.tweens.add({ targets: shade, alpha: 0.78, duration: 300 });
+    this.launchConfetti();
+  }
+
+  launchConfetti() {
+    const colors = [0x6f3f78, 0x9a5aa5, 0xc94d3f, 0xe3ad43, 0xf3e4c4, 0x56805f];
+    const piecesPerSide = 34;
+
+    for (let side = 0; side < 2; side += 1) {
+      for (let index = 0; index < piecesPerSide; index += 1) {
+        const fromLeft = side === 0;
+        const startX = fromLeft ? -20 : GAME_WIDTH + 20;
+        const startY = Phaser.Math.Between(820, 1080);
+        const width = Phaser.Math.Between(12, 28);
+        const height = Phaser.Math.Between(7, 16);
+        const confetti = this.add.rectangle(
+          startX,
+          startY,
+          width,
+          height,
+          Phaser.Utils.Array.GetRandom(colors),
+        )
+          .setAngle(Phaser.Math.Between(-90, 90))
+          .setDepth(DEPTH.ui + 24);
+
+        const apexX = fromLeft
+          ? Phaser.Math.Between(340, 1500)
+          : Phaser.Math.Between(548, 1708);
+        const apexY = Phaser.Math.Between(80, 620);
+        const firstSpin = Phaser.Math.Between(220, 640) * (fromLeft ? 1 : -1);
+
+        this.tweens.add({
+          targets: confetti,
+          x: apexX,
+          y: apexY,
+          angle: `+=${firstSpin}`,
+          delay: Phaser.Math.Between(0, 220),
+          duration: Phaser.Math.Between(620, 920),
+          ease: 'Cubic.easeOut',
+          onComplete: () => {
+            this.tweens.add({
+              targets: confetti,
+              x: apexX + Phaser.Math.Between(-180, 180),
+              y: GAME_HEIGHT + 90,
+              angle: `+=${Phaser.Math.Between(360, 900) * (fromLeft ? 1 : -1)}`,
+              duration: Phaser.Math.Between(950, 1500),
+              ease: 'Quad.easeIn',
+              onComplete: () => confetti.destroy(),
+            });
+          },
+        });
+      }
+    }
   }
 }
