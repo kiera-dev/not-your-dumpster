@@ -18,6 +18,6 @@ export class BootScene extends Phaser.Scene {
   create() {
     getAudio(this);
     registerWaddles(this);
-    this.scene.start('Alley');
+    this.scene.start('Title');
   }
 }
