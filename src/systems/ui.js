@@ -234,18 +234,20 @@ export function createSceneExit(scene, text, onClick) {
 export function showDialogue(scene, lines) {
   return new Promise((resolve) => {
     let index = 0;
+    const boxX = 84;
+    const boxWidth = GAME_WIDTH * 0.65;
     const shade = scene.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.12)
       .setOrigin(0).setDepth(DEPTH.ui + 5);
-    const box = scene.add.rectangle(84, GAME_HEIGHT - 320, GAME_WIDTH - 168, 250, PAPER, 0.98)
+    const box = scene.add.rectangle(boxX, GAME_HEIGHT - 320, boxWidth, 250, PAPER, 0.98)
       .setOrigin(0).setStrokeStyle(7, 0x382824).setDepth(DEPTH.ui + 6);
     const speaker = scene.add.text(126, GAME_HEIGHT - 286, '', {
       fontFamily: 'Georgia, serif', fontStyle: 'bold', fontSize: '34px', color: INK,
     }).setDepth(DEPTH.ui + 7);
     const body = scene.add.text(126, GAME_HEIGHT - 232, '', {
       fontFamily: 'Georgia, serif', fontSize: '36px', color: INK,
-      wordWrap: { width: GAME_WIDTH - 260 }, lineSpacing: 8,
+      wordWrap: { width: boxWidth - 84 }, lineSpacing: 8,
     }).setDepth(DEPTH.ui + 7);
-    const prompt = scene.add.text(GAME_WIDTH - 128, GAME_HEIGHT - 104, 'CLICK TO CONTINUE  ›', {
+    const prompt = scene.add.text(boxX + boxWidth - 44, GAME_HEIGHT - 104, 'CLICK TO CONTINUE  ›', {
       fontFamily: 'Arial, sans-serif', fontSize: '20px', color: '#604940',
     }).setOrigin(1, 1).setDepth(DEPTH.ui + 7);
     const clickShield = scene.add.zone(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT)
