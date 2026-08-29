@@ -278,28 +278,33 @@ export function showDialogue(scene, lines) {
 
 export function showChoice(scene, { speaker, text, choices }) {
   return new Promise((resolve) => {
+    const boxX = 84;
+    const boxWidth = GAME_WIDTH * 0.65;
+    const contentX = boxX + 42;
+    const contentWidth = boxWidth - 84;
     const shade = scene.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.16)
       .setOrigin(0).setDepth(DEPTH.ui + 5);
     const boxY = GAME_HEIGHT - 390;
-    const box = scene.add.rectangle(84, boxY, GAME_WIDTH - 168, 320, PAPER, 0.99)
+    const box = scene.add.rectangle(boxX, boxY, boxWidth, 320, PAPER, 0.99)
       .setOrigin(0).setStrokeStyle(7, 0x382824).setDepth(DEPTH.ui + 6);
-    const speakerText = scene.add.text(126, boxY + 28, speaker.toUpperCase(), {
+    const speakerText = scene.add.text(contentX, boxY + 28, speaker.toUpperCase(), {
       fontFamily: 'Georgia, serif', fontStyle: 'bold', fontSize: '31px', color: INK,
     }).setDepth(DEPTH.ui + 7);
-    const body = scene.add.text(126, boxY + 76, text, {
+    const body = scene.add.text(contentX, boxY + 76, text, {
       fontFamily: 'Georgia, serif', fontSize: '32px', color: INK,
-      wordWrap: { width: GAME_WIDTH - 260 },
+      wordWrap: { width: contentWidth },
     }).setDepth(DEPTH.ui + 7);
     const created = [shade, box, speakerText, body];
     const wiggles = [];
     const rageChoice = choices.some((choice) => choice.feral);
-    const buttonWidth = rageChoice ? GAME_WIDTH - 252 : 820;
+    const columnGap = 48;
+    const buttonWidth = rageChoice ? contentWidth : (contentWidth - columnGap) / 2;
     const buttonHeight = rageChoice ? 86 : 56;
 
     choices.forEach((choice, index) => {
       const column = rageChoice ? 0 : index % 2;
       const row = rageChoice ? index : Math.floor(index / 2);
-      const x = 126 + column * 910;
+      const x = contentX + column * (buttonWidth + columnGap);
       const y = boxY + 170 + row * (rageChoice ? 98 : 70);
       const button = scene.add.rectangle(x, y, buttonWidth, buttonHeight, 0xd8c7a7, 1)
         .setOrigin(0).setStrokeStyle(3, 0x604940).setDepth(DEPTH.ui + 7)
