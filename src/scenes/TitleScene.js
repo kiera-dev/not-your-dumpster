@@ -116,7 +116,7 @@ export class TitleScene extends Phaser.Scene {
       },
     });
 
-    this.titleCard = this.createPaperPanel(116, 102, 1320, 864, 'titlePaper');
+    this.titleCard = this.createPaperPanel(116, 102, 1320, 914, 'titlePaperLong');
     const department = this.add.text(
       182,
       164,
@@ -173,7 +173,7 @@ export class TitleScene extends Phaser.Scene {
         lineSpacing: 12,
       },
     ).setDepth(DEPTH.ui + 2);
-    const filingPrompt = this.add.text(150, 896, '[click anywhere to submit form]', {
+    const filingPrompt = this.add.text(190, 896, '[click anywhere to submit form]', {
       fontFamily: 'Arial, sans-serif',
       fontSize: '24px',
       color: '#837268',
