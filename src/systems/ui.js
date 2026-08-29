@@ -4,6 +4,7 @@ import { createAudioControl, playSfx } from './audio.js';
 
 const PAPER = 0xf1e4c7;
 const INK = '#261b18';
+const DIALOGUE_WIDTH_RATIO = 0.6;
 
 export function createObjectiveHud(scene, gameState) {
   createAudioControl(scene);
@@ -235,7 +236,7 @@ export function showDialogue(scene, lines) {
   return new Promise((resolve) => {
     let index = 0;
     const boxX = 84;
-    const boxWidth = GAME_WIDTH * 0.65;
+    const boxWidth = GAME_WIDTH * DIALOGUE_WIDTH_RATIO;
     const shade = scene.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.12)
       .setOrigin(0).setDepth(DEPTH.ui + 5);
     const box = scene.add.rectangle(boxX, GAME_HEIGHT - 320, boxWidth, 250, PAPER, 0.98)
@@ -279,7 +280,7 @@ export function showDialogue(scene, lines) {
 export function showChoice(scene, { speaker, text, choices }) {
   return new Promise((resolve) => {
     const boxX = 84;
-    const boxWidth = GAME_WIDTH * 0.65;
+    const boxWidth = GAME_WIDTH * DIALOGUE_WIDTH_RATIO;
     const contentX = boxX + 42;
     const contentWidth = boxWidth - 84;
     const shade = scene.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.16)
