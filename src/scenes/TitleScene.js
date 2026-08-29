@@ -9,7 +9,6 @@ import { fadeToScene } from '../systems/ui.js';
 
 const INK = '#261b18';
 const BORDER = 0x382824;
-const BUTTON = 0xd8c7a7;
 
 function createPaperTexture(scene, key, width, height) {
   if (scene.textures.exists(key)) return key;
@@ -138,32 +137,45 @@ export class TitleScene extends Phaser.Scene {
       fontSize: '112px',
       color: INK,
     }).setDepth(DEPTH.ui + 2);
-    const banana = this.add.image(title.x + title.width + 32, 431, 'banana')
-      .setDisplaySize(68, 39)
-      .setAngle(-10)
-      .setDepth(DEPTH.ui + 3);
-    const subtitle = this.add.text(188, 482, 'THIS IS NOT YOUR DUMPSTER!', {
+    const subtitle = this.add.text(188, 478, 'THIS IS NOT YOUR DUMPSTER!', {
       fontFamily: 'Stardos Stencil, Georgia, serif',
       fontStyle: 'bold',
-      fontSize: '54px',
+      fontSize: '64px',
       color: '#6f2722',
     }).setDepth(DEPTH.ui + 2);
-    const filing = this.add.text(190, 596, 'FORM 0-A: REQUEST TO BEGIN', {
+    const filing = this.add.text(190, 612, 'FORM 0-A: REQUEST TO BEGIN', {
       fontFamily: 'Arial, sans-serif',
-      fontSize: '27px',
+      fontStyle: 'bold',
+      fontSize: '32px',
       color: '#604940',
       letterSpacing: 2,
     }).setDepth(DEPTH.ui + 2);
-    const { button, parts: buttonParts } = this.createButton(190, 730, 620, 94, 'SUBMIT APPLICATION');
-    this.approvedStamp = this.add.image(1080, 755, 'approvedStamp')
-      .setDisplaySize(340, 132)
+    const filingRule = this.add.rectangle(190, 736, 660, 3, 0x604940, 0.72)
+      .setOrigin(0)
+      .setDepth(DEPTH.ui + 2);
+    const filingPrompt = this.add.text(190, 770, 'CLICK ANYWHERE TO FILE FORM 0-A', {
+      fontFamily: 'Arial, sans-serif',
+      fontStyle: 'bold',
+      fontSize: '28px',
+      color: INK,
+      letterSpacing: 1,
+    }).setDepth(DEPTH.ui + 2);
+    this.approvedStamp = this.add.image(1000, 790, 'approvedStamp')
+      .setDisplaySize(620, 241)
       .setAngle(-8)
       .setAlpha(0)
-      .setScale(1.8)
       .setDepth(DEPTH.ui + 5);
-    this.titleElements = [this.titleCard, department, rule, title, banana, subtitle, filing, ...buttonParts];
+    this.approvedStampFinalScale = {
+      x: this.approvedStamp.scaleX,
+      y: this.approvedStamp.scaleY,
+    };
+    this.approvedStamp.setScale(
+      this.approvedStampFinalScale.x * 1.8,
+      this.approvedStampFinalScale.y * 1.8,
+    );
 
-    button.on('pointerdown', () => this.approveApplication(button));
+    this.titleCard.setInteractive({ cursor: 'pointer' });
+    this.titleCard.on('pointerdown', () => this.approveApplication());
     createAudioControl(this);
   }
 
@@ -174,99 +186,22 @@ export class TitleScene extends Phaser.Scene {
       .setDepth(DEPTH.ui + 1);
   }
 
-  createButton(x, y, width, height, text) {
-    const shadow = this.add.rectangle(x + 6, y + 8, width, height, 0x382824, 0.35)
-      .setOrigin(0)
-      .setDepth(DEPTH.ui + 2);
-    const button = this.add.rectangle(x, y, width, height, BUTTON, 1)
-      .setOrigin(0)
-      .setStrokeStyle(5, 0x604940)
-      .setDepth(DEPTH.ui + 3)
-      .setInteractive({ cursor: 'pointer' });
-    const inset = this.add.rectangle(x + 9, y + 9, width - 18, height - 18, 0xffffff, 0)
-      .setOrigin(0)
-      .setStrokeStyle(2, 0xf1e4c7, 0.78)
-      .setDepth(DEPTH.ui + 4);
-    const label = this.add.text(x + (width / 2), y + (height / 2), text, {
-      fontFamily: 'Arial, sans-serif',
-      fontStyle: 'bold',
-      fontSize: '30px',
-      color: INK,
-    }).setOrigin(0.5).setDepth(DEPTH.ui + 5);
-    button.on('pointerover', () => button.setFillStyle(0xeadab9));
-    button.on('pointerout', () => button.setFillStyle(BUTTON));
-    return { button, label, parts: [shadow, button, inset, label] };
-  }
-
-  approveApplication(button) {
+  approveApplication() {
     if (this.transitioning) return;
     this.transitioning = true;
-    button.disableInteractive();
+    this.titleCard.disableInteractive();
     playSfx(this, 'stamp1');
     syncSceneAudio(this, 'alley');
     this.tweens.add({
       targets: this.approvedStamp,
       alpha: 1,
-      scale: 1,
+      scaleX: this.approvedStampFinalScale.x,
+      scaleY: this.approvedStampFinalScale.y,
       duration: 190,
       ease: 'Back.easeOut',
       onComplete: () => {
         this.cameras.main.shake(80, 0.0025);
-        this.time.delayedCall(650, () => this.showControls());
-      },
-    });
-  }
-
-  showControls() {
-    this.tweens.add({
-      targets: [...this.titleElements, this.approvedStamp],
-      alpha: 0,
-      duration: 260,
-      onComplete: () => {
-        [...this.titleElements, this.approvedStamp].forEach((item) => item.destroy());
-        this.createControlsCard();
-      },
-    });
-  }
-
-  createControlsCard() {
-    const card = this.createPaperPanel(146, 150, 1240, 760).setAlpha(0);
-    const heading = this.add.text(214, 220, 'HOW TO PROCEED', {
-      fontFamily: 'Georgia, serif',
-      fontStyle: 'bold',
-      fontSize: '68px',
-      color: INK,
-    }).setAlpha(0).setDepth(DEPTH.ui + 2);
-    const body = this.add.text(
-      220,
-      350,
-      'Click objects and characters to interact.\n\nJimothy waddles where he needs to go.\n\nClick dialogue cards to continue.',
-      {
-        fontFamily: 'Georgia, serif',
-        fontSize: '38px',
-        color: INK,
-        lineSpacing: 8,
-        wordWrap: { width: 1080 },
-      },
-    ).setAlpha(0).setDepth(DEPTH.ui + 2);
-    const { button, parts: buttonParts } = this.createButton(220, 716, 520, 92, 'ENTER ALLEY');
-    buttonParts.forEach((part) => part.setAlpha(0));
-    const elements = [card, heading, body, ...buttonParts];
-    this.tweens.add({
-      targets: elements,
-      alpha: 1,
-      y: '+=12',
-      duration: 340,
-      ease: 'Cubic.easeOut',
-      onComplete: () => {
-        this.transitioning = false;
-        button.on('pointerdown', () => {
-          if (this.transitioning) return;
-          this.transitioning = true;
-          button.disableInteractive();
-          playSfx(this, 'uiClick');
-          fadeToScene(this, 'Alley');
-        });
+        this.time.delayedCall(900, () => fadeToScene(this, 'Alley'));
       },
     });
   }
