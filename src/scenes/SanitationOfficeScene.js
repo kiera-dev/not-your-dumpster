@@ -3,6 +3,7 @@ import { DEPTH, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig.js';
 import { SCENE_LAYOUTS } from '../config/sceneLayouts.js';
 import { GameState } from '../state/GameState.js';
 import { autoWaddle, createJimothy } from '../systems/Jimothy.js';
+import { playSfx, syncSceneAudio } from '../systems/audio.js';
 import {
   createHotspot,
   createObjectiveHud,
@@ -22,6 +23,7 @@ export class SanitationOfficeScene extends Phaser.Scene {
     this.busy = true;
     this.exitPrompt = null;
     this.state = new GameState(this.registry);
+    syncSceneAudio(this, 'interior');
     this.add.image(0, 0, layout.background).setOrigin(0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT).setDepth(DEPTH.background);
 
     const addPlaced = (texture, item) => this.add.image(item.x, item.y, texture)
@@ -71,10 +73,9 @@ export class SanitationOfficeScene extends Phaser.Scene {
   }
 
   setBeaverTexture(texture) {
-    this.beaver.setTexture(texture).setDisplaySize(
-      this.layout.beaver.displayWidth,
-      this.layout.beaver.displayHeight,
-    );
+    const source = this.textures.get(texture).getSourceImage();
+    const height = this.layout.beaver.displayHeight;
+    this.beaver.setTexture(texture).setDisplaySize(height * (source.width / source.height), height);
   }
 
   createTicker() {
@@ -87,10 +88,15 @@ export class SanitationOfficeScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(DEPTH.ui + 3).setVisible(false);
   }
 
-  setTicker(text, { marquee = false } = {}) {
+  setTicker(text, { marquee = false, crashed = false } = {}) {
     this.tickerTween?.stop();
-    this.tickerPanel.setVisible(true);
-    this.tickerText.setText(text).setVisible(true);
+    this.tickerPanel
+      .setFillStyle(crashed ? 0x3a1e20 : 0x1c2720, 0.96)
+      .setVisible(true);
+    this.tickerText
+      .setColor(crashed ? '#f3b8ad' : '#e8e0bc')
+      .setText(text)
+      .setVisible(true);
     if (marquee) {
       this.tickerText.setOrigin(0, 0.5).setX(GAME_WIDTH);
       this.tickerTween = this.tweens.add({
@@ -178,7 +184,7 @@ export class SanitationOfficeScene extends Phaser.Scene {
       this.setBeaverTexture('beaverTalk');
       await showDialogue(this, [
         { speaker: 'Sanitation official', text: 'Orientation complete.' },
-        { speaker: 'Sanitation official', text: 'Please take the spoon market with you when you leave.' },
+        { speaker: 'Sanitation official', text: 'The spoon market will not recover from this.' },
       ]);
       this.setBeaverTexture('beaverIdle');
       this.busy = false;
@@ -191,12 +197,13 @@ export class SanitationOfficeScene extends Phaser.Scene {
         { speaker: 'Sanitation official', text: 'Temporary Refuse Technician?' },
         { speaker: 'Jimothy', text: '…' },
         { speaker: 'Sanitation official', text: 'Great.' },
-        { speaker: 'Sanitation official', text: 'Before employment, I need to establish that you understand responsible waste handling.' },
+        { speaker: 'Sanitation official', text: 'Before employment can begin, I need to establish that you understand responsible waste handling.' },
       ]);
       this.state.setFlag('vestEquipped');
       this.jimothy.setTexture('jimothyVestInteriorWalk1');
       this.jimothy.setData('idleKey', 'jimothyVestInteriorWalk1');
       this.jimothy.setData('vest', true);
+      playSfx(this, 'vestEquip');
       await showToast(this, 'EQUIPPED: MUNICIPAL SAFETY VEST');
       await showDialogue(this, [
         { speaker: 'Sanitation official', text: 'There.' },
@@ -221,7 +228,8 @@ export class SanitationOfficeScene extends Phaser.Scene {
       return;
     }
     if (this.state.has(`${item}Sorted`)) {
-      await showDialogue(this, [{ speaker: 'Jimothy', text: `${item === 'foil' ? 'Aluminium' : item}. Already municipalized.` }]);
+      const itemName = item === 'foil' ? 'Aluminium' : `${item[0].toUpperCase()}${item.slice(1)}`;
+      await showDialogue(this, [{ speaker: 'Jimothy', text: `${itemName}. Already municipalized.` }]);
       this.busy = false;
       return;
     }
@@ -240,7 +248,7 @@ export class SanitationOfficeScene extends Phaser.Scene {
       this.state.setFlag('spoonWarned');
       this.setBeaverTexture('beaverTalk');
       await showDialogue(this, [
-        { speaker: 'Sanitation official', text: 'Do not move Spoon.' },
+        { speaker: 'Sanitation official', text: 'Do not move the spoon.' },
         { speaker: 'Jimothy', text: '…' },
         { speaker: 'Sanitation official', text: 'Spoons are currently undergoing price discovery.' },
       ]);
@@ -308,6 +316,8 @@ export class SanitationOfficeScene extends Phaser.Scene {
       this.setTicker(value);
       await this.pause(520);
     }
+    this.setTicker('SPOONS ▼ 96% — TRADING HALTED', { crashed: true });
+    await this.pause(650);
     this.setBeaverTexture('beaverHorrified');
     this.financeBro.setTexture('financeBroPanic');
     await showDialogue(this, [
@@ -322,14 +332,13 @@ export class SanitationOfficeScene extends Phaser.Scene {
     if (!this.state.has('bananaSorted') || !this.state.has('foilSorted') || !this.state.has('spoonSorted')) return;
     this.busy = true;
     this.setBeaverTexture('beaverStamp');
-    await showDialogue(this, [{ speaker: 'Sanitation official', text: 'Passed.' }]);
+    await showDialogue(this, [{ speaker: 'Sanitation official', text: 'Passed.', sound: 'stamp1' }]);
     this.state.setFlag('sanitationComplete');
     this.state.setFlag('hasSanitationCertification');
     this.state.setFlag('hasDollarThirteen');
     await showToast(this, 'CASE FILE UPDATED: SANITATION CERTIFICATION');
     await showToast(this, 'RECEIVED: $1.13');
-    this.setTicker('SPOONS ▼ 96% — TRADING HALTED');
-    await this.hud.replaceCurrentObjective('PAY REFUSE TAX');
+    await this.hud.replaceCurrentObjective('PAY COMMERCIAL PROPERTY TAX');
     this.exitPrompt = createSceneExit(this, 'RETURN TO PERMIT OFFICE', () => this.useExit());
     this.setBeaverTexture('beaverIdle');
     this.busy = false;
@@ -351,7 +360,7 @@ export class SanitationOfficeScene extends Phaser.Scene {
     if (this.state.has('spoonSorted')) {
       await showDialogue(this, [
         { speaker: 'Finance bro', text: 'Spoons were supposed to be decentralized.' },
-        { speaker: 'Jimothy', text: 'Spoon is on the floor.' },
+        { speaker: 'Jimothy', text: 'The spoon is no longer in circulation.' },
       ]);
     } else {
       await showDialogue(this, [
@@ -367,7 +376,7 @@ export class SanitationOfficeScene extends Phaser.Scene {
     this.busy = true;
     await showDialogue(this, [
       { speaker: 'Jimothy', text: 'Jimothy tries to take the pen.' },
-      { speaker: 'Chained pen', text: 'CLINK.' },
+      { speaker: 'Chained pen', text: 'CLINK.', sound: 'penChain' },
       { speaker: 'Jimothy', text: 'The municipal pen containment program appears to be extremely well funded.' },
       { speaker: 'Jimothy', text: 'The beaver does not notice.' },
     ]);

@@ -78,3 +78,31 @@ export const CORE_ASSETS = Object.freeze({
   officeChair: `${A}/props/office_chair.png`,
   officeDesk: `${A}/props/office_desk.png`,
 });
+
+const audioSources = (folder, name) => [
+  `${A}/audio/${folder}/${name}.ogg`,
+  `${A}/audio/${folder}/${name}.mp3`,
+];
+
+export const AUDIO_ASSETS = Object.freeze({
+  alleyAmbience: audioSources('ambience', 'alley'),
+  officeAmbience: audioSources('ambience', 'office'),
+  bell: audioSources('sfx', 'bell'),
+  coneKick: audioSources('sfx', 'cone-kick'),
+  coneMove: audioSources('sfx', 'cone-move'),
+  cronchGrape: audioSources('sfx', 'cronch-grape'),
+  deskCrash: audioSources('sfx', 'desk-crash'),
+  dumpsterDive: audioSources('sfx', 'dumpster-dive'),
+  dumpsterOpen: audioSources('sfx', 'dumpster-lid'),
+  eatForm: audioSources('sfx', 'eat-form'),
+  formSwoosh: audioSources('sfx', 'form-swoosh'),
+  inventoryUpdated: audioSources('sfx', 'inventory-updated'),
+  penChain: audioSources('sfx', 'pen-chain'),
+  rageSting: audioSources('sfx', 'rage-sting'),
+  stamp1: audioSources('sfx', 'stamp-1'),
+  stamp2: audioSources('sfx', 'stamp-2'),
+  uiClick: audioSources('sfx', 'ui-click'),
+  vestEquip: audioSources('sfx', 'vest-equip'),
+  yayGrape: audioSources('sfx', 'yay-grape'),
+  rageMusic: [`${A}/audio/music/future-anno-domini-beats.mp3`],
+});

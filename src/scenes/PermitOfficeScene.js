@@ -3,6 +3,7 @@ import { DEPTH, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig.js';
 import { SCENE_LAYOUTS, SPRITE_META } from '../config/sceneLayouts.js';
 import { GameState } from '../state/GameState.js';
 import { autoWaddle, createJimothy } from '../systems/Jimothy.js';
+import { getAudio, playSfx, syncSceneAudio } from '../systems/audio.js';
 import {
   createHotspot,
   createObjectiveHud,
@@ -40,6 +41,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     this.screenInspections = 0;
     this.stampMarks = [];
     this.state = new GameState(this.registry);
+    syncSceneAudio(this, 'interior');
     this.state.setFlag('enteredPermitOffice');
     this.add.image(0, 0, layout.background).setOrigin(0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT).setDepth(DEPTH.background);
 
@@ -256,6 +258,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     ]);
     this.state.setFlag('form12Presented');
     this.createForm12Prop();
+    playSfx(this, 'formSwoosh');
     await showToast(this, 'RECEIVED: FORM 12-C — APPROXIMATELY 11.4 FEET');
     this.clerk.setTexture('clerkTalk');
     await showDialogue(this, [
@@ -278,6 +281,7 @@ export class PermitOfficeScene extends Phaser.Scene {
       .setData('vest', false);
     await this.hud.enterFeralMode();
     this.setFeralPose();
+    getAudio(this).startRage();
     await showToast(this, 'NEW MECHANIC UNLOCKED: RACCOON');
     this.ensureForm12Hotspot();
     this.refreshExitPrompt();
@@ -288,8 +292,11 @@ export class PermitOfficeScene extends Phaser.Scene {
     this.busy = true;
     const form = this.createForm12Prop();
     this.jimothy.setTexture('jimothyEat').setScale(1.05).setFlipX(false);
+    const firstBite = !this.state.has('form12PartiallyEaten');
+    playSfx(this, 'eatForm', { volume: 0.30 });
+    playSfx(this, 'cronchGrape', { volume: 0.27, rate: firstBite ? 1.08 : 0.92 });
 
-    if (!this.state.has('form12PartiallyEaten')) {
+    if (firstBite) {
       const halfEatenScaleX = form.scaleX * (HALF_EATEN_FORM_WIDTH / form.displayWidth);
       await new Promise((resolve) => this.tweens.add({
         targets: form,
@@ -371,13 +378,13 @@ export class PermitOfficeScene extends Phaser.Scene {
   async ringBell() {
     if (this.busy) return;
     this.busy = true;
-    await showDialogue(this, [{ speaker: 'Service bell', text: 'DING.' }]);
+    await showDialogue(this, [{ speaker: 'Service bell', text: 'DING.', sound: 'bell' }]);
 
     if (this.state.has('feralMode')
       && this.state.has('deskTaken')
       && !this.state.has('stampRampageComplete')) {
       await showDialogue(this, [
-        { speaker: 'Clerk', text: 'The bell is not the stamp.' },
+        { speaker: 'Clerk', text: 'Please stop summoning me. I am already witnessing this.' },
       ]);
       this.ensureRageStampHotspot();
       this.stamp?.setDepth(DEPTH.effect + 1);
@@ -436,15 +443,15 @@ export class PermitOfficeScene extends Phaser.Scene {
         purposeResolved = true;
       } else if (purpose === 'raccoon') {
         await showDialogue(this, [
-          { speaker: 'Clerk', text: 'Species?' },
+          { speaker: 'Clerk', text: 'That is your species.' },
           { speaker: 'Jimothy', text: 'Raccoon.' },
-          { speaker: 'Clerk', text: 'No. Sorry. Purpose of visit.' },
+          { speaker: 'Clerk', text: 'Yes. Purpose of visit?' },
         ]);
       } else if (purpose === 'pen') {
         await showDialogue(this, [
           { speaker: 'Jimothy', text: 'Jimothy reaches very slowly for the pen.' },
           { speaker: 'System', text: 'The clerk watches Jimothy, judgingly.' },
-          { speaker: 'Chained pen', text: 'CLINK.' },
+          { speaker: 'Chained pen', text: 'CLINK.', sound: 'penChain' },
           { speaker: 'System', text: 'The pen cannot be removed.' },
           { speaker: 'Clerk', text: 'Purpose of visit?' },
         ]);
@@ -457,7 +464,7 @@ export class PermitOfficeScene extends Phaser.Scene {
       }
     }
 
-    this.clerk.setTexture('clerkPaperwork');
+    this.clerk.setTexture('clerkTalk');
     await showDialogue(this, [
       { speaker: 'Clerk', text: 'Dumpster access requires Form 8-B.' },
     ]);
@@ -488,7 +495,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     };
     const residenceResponse = residence === 'pen' ? [
       { speaker: 'System', text: responses.pen },
-      { speaker: 'Chained pen', text: 'CLINK.' },
+      { speaker: 'Chained pen', text: 'CLINK.', sound: 'penChain' },
       { speaker: 'System', text: 'The pen cannot be removed.' },
     ] : [{ speaker: 'Clerk', text: responses[residence] }];
     await showDialogue(this, [
@@ -506,7 +513,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     await showDialogue(this, [{ speaker: 'Clerk', text: 'This is a leaf.' }]);
     const answer = await showChoice(this, {
       speaker: 'Jimothy',
-      text: 'The leaf waits to be entered into evidence.',
+      text: 'The leaf waits to be administratively filed.',
       choices: [
         { label: 'YES', value: 'yes' },
         { label: 'RACCOON', value: 'raccoon' },
@@ -534,11 +541,11 @@ export class PermitOfficeScene extends Phaser.Scene {
       { speaker: 'Clerk', text: 'Current resident… Behind Container 7-C.' },
       { speaker: 'Clerk', text: 'Oh.' },
       { speaker: 'Clerk', text: 'That dumpster is zoned commercial.' },
-      { speaker: 'Clerk', text: 'You have an outstanding property-tax liability.' },
+      { speaker: 'Clerk', text: 'You have an outstanding commercial property-tax liability.' },
     ]);
     this.state.setFlag('taxDebtKnown');
     await showToast(this, 'BALANCE DUE: $1.13');
-    await this.hud.replaceCurrentObjective('RESOLVE OUTSTANDING REFUSE TAX LIABILITY');
+    await this.hud.replaceCurrentObjective('RESOLVE OUTSTANDING COMMERCIAL PROPERTY-TAX LIABILITY');
 
     const payment = await showChoice(this, {
       speaker: 'Jimothy',
@@ -579,7 +586,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     this.clerk.setTexture('clerkPaperwork');
     await showDialogue(this, [
       { speaker: 'Clerk', text: 'Residency verified.' },
-      { speaker: 'Clerk', text: 'Tax liability resolved.' },
+      { speaker: 'Clerk', text: 'Commercial property-tax liability resolved.' },
       { speaker: 'Clerk', text: 'Responsible refuse handling certified.' },
       { speaker: 'Clerk', text: 'One moment.' },
       { speaker: 'Clerk', text: 'Container 7-C sits directly on a jurisdictional boundary.' },
@@ -663,6 +670,7 @@ export class PermitOfficeScene extends Phaser.Scene {
         return;
       }
       await showDialogue(this, [
+        { speaker: 'Chained pen', text: 'CLINK.', sound: 'penChain' },
         { speaker: 'Jimothy', text: 'The pen cannot be removed from the desk.' },
       ]);
       await showChoice(this, {
@@ -692,6 +700,7 @@ export class PermitOfficeScene extends Phaser.Scene {
         ease: 'Back.easeIn',
         onComplete: resolve,
       })) : Promise.resolve();
+      playSfx(this, 'deskCrash');
       await Promise.all([
         disappear,
         spill(this.counterFormStack, 460, 1070, -72),
@@ -737,7 +746,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     }
     await showDialogue(this, [
       { speaker: 'Jimothy', text: 'Jimothy reaches for the pen.' },
-      { speaker: 'Chained pen', text: 'CLINK.' },
+      { speaker: 'Chained pen', text: 'CLINK.', sound: 'penChain' },
       { speaker: 'Jimothy', text: 'PROPERTY OF MUNICIPAL SERVICES.' },
       { speaker: 'Jimothy', text: 'The pen is more securely housed than Jimothy.' },
     ]);
@@ -823,6 +832,7 @@ export class PermitOfficeScene extends Phaser.Scene {
       choices: [{ label: 'STAMP EVERYTHING', value: 'stamp', feral: true }],
     });
     for (const mark of this.getStampRampageMarks()) {
+      playSfx(this, this.stampMarks.length % 2 === 0 ? 'stamp1' : 'stamp2');
       const impression = this.createStampMark(mark, true);
       const impactText = this.add.text(mark.x, mark.y - 70, 'THUNK', {
         fontFamily: 'Arial Black, Arial, sans-serif',
@@ -871,9 +881,9 @@ export class PermitOfficeScene extends Phaser.Scene {
     this.stamp = null;
     this.stampHotspot = null;
     await showToast(this, 'ACQUIRED: MUNICIPAL AUTHORITY STAMP');
-    await showDialogue(this, [{ speaker: 'Clerk', text: 'That does not make you municipal authority.' }]);
+    await showDialogue(this, [{ speaker: 'Clerk', text: 'That does not make you a municipal authority.' }]);
     await this.stampEverything();
-    await showDialogue(this, [{ speaker: 'Clerk', text: 'That made it significantly worse.' }]);
+    await showDialogue(this, [{ speaker: 'Clerk', text: 'Authority recognized.' }]);
     if (this.state.has('deskTaken')) {
       await this.hud.replaceCurrentObjective('RETURN TO DUMPSTER');
       this.refreshExitPrompt();

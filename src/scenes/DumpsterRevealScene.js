@@ -2,6 +2,12 @@ import Phaser from 'phaser';
 import { DEPTH, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig.js';
 import { SCENE_LAYOUTS } from '../config/sceneLayouts.js';
 import { GameState } from '../state/GameState.js';
+import {
+  createAudioControl,
+  getAudio,
+  playSfx,
+  syncSceneAudio,
+} from '../systems/audio.js';
 import { createHotspot, createSceneExit, fadeToScene, showDialogue } from '../systems/ui.js';
 
 export class DumpsterRevealScene extends Phaser.Scene {
@@ -9,6 +15,8 @@ export class DumpsterRevealScene extends Phaser.Scene {
 
   create() {
     this.state = new GameState(this.registry);
+    syncSceneAudio(this, 'alley');
+    createAudioControl(this);
     const layout = SCENE_LAYOUTS.dumpsterReveal;
     this.busy = false;
     this.background = this.add.image(
@@ -17,6 +25,7 @@ export class DumpsterRevealScene extends Phaser.Scene {
       this.state.has('grapeAcquired') ? 'bgNoGrape' : layout.background,
     ).setOrigin(0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT).setDepth(DEPTH.background);
     this.state.setFlag('grapeSeen');
+    playSfx(this, 'dumpsterDive');
     if (this.state.has('grapeAcquired')) {
       this.showEnding();
       return;
@@ -62,16 +71,19 @@ export class DumpsterRevealScene extends Phaser.Scene {
       .setDepth(DEPTH.actor);
     this.state.setFlag('grapeAcquired');
     this.state.setPersonalObjective('GRAPE ACQUIRED');
+    playSfx(this, 'cronchGrape');
     await showDialogue(this, [
       { speaker: 'Jimothy', text: 'CRONCH.' },
       { speaker: 'Jimothy', text: 'Prrp.' },
     ]);
     eater.destroy();
     this.state.setFlag('endingComplete');
+    await new Promise((resolve) => this.time.delayedCall(300, resolve));
     this.showEnding();
   }
 
   showEnding() {
+    playSfx(this, 'yayGrape');
     const shade = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x16100f, 0.78)
       .setOrigin(0)
       .setDepth(DEPTH.ui + 20);
@@ -111,6 +123,8 @@ export class DumpsterRevealScene extends Phaser.Scene {
     button.on('pointerout', () => button.setFillStyle(0xd8c7a7));
     button.on('pointerdown', () => {
       button.disableInteractive();
+      playSfx(this, 'uiClick');
+      getAudio(this).reset();
       this.state.reset();
       this.cameras.main.fadeOut(350, 22, 16, 15);
       this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Alley'));
@@ -124,5 +138,57 @@ export class DumpsterRevealScene extends Phaser.Scene {
     });
     shade.setAlpha(0);
     this.tweens.add({ targets: shade, alpha: 0.78, duration: 300 });
+    this.launchConfetti();
+  }
+
+  launchConfetti() {
+    const colors = [0x6f3f78, 0x9a5aa5, 0xc94d3f, 0xe3ad43, 0xf3e4c4, 0x56805f];
+    const piecesPerSide = 34;
+
+    for (let side = 0; side < 2; side += 1) {
+      for (let index = 0; index < piecesPerSide; index += 1) {
+        const fromLeft = side === 0;
+        const startX = fromLeft ? -20 : GAME_WIDTH + 20;
+        const startY = Phaser.Math.Between(820, 1080);
+        const width = Phaser.Math.Between(12, 28);
+        const height = Phaser.Math.Between(7, 16);
+        const confetti = this.add.rectangle(
+          startX,
+          startY,
+          width,
+          height,
+          Phaser.Utils.Array.GetRandom(colors),
+        )
+          .setAngle(Phaser.Math.Between(-90, 90))
+          .setDepth(DEPTH.ui + 24);
+
+        const apexX = fromLeft
+          ? Phaser.Math.Between(340, 1500)
+          : Phaser.Math.Between(548, 1708);
+        const apexY = Phaser.Math.Between(80, 620);
+        const firstSpin = Phaser.Math.Between(220, 640) * (fromLeft ? 1 : -1);
+
+        this.tweens.add({
+          targets: confetti,
+          x: apexX,
+          y: apexY,
+          angle: `+=${firstSpin}`,
+          delay: Phaser.Math.Between(0, 220),
+          duration: Phaser.Math.Between(620, 920),
+          ease: 'Cubic.easeOut',
+          onComplete: () => {
+            this.tweens.add({
+              targets: confetti,
+              x: apexX + Phaser.Math.Between(-180, 180),
+              y: GAME_HEIGHT + 90,
+              angle: `+=${Phaser.Math.Between(360, 900) * (fromLeft ? 1 : -1)}`,
+              duration: Phaser.Math.Between(950, 1500),
+              ease: 'Quad.easeIn',
+              onComplete: () => confetti.destroy(),
+            });
+          },
+        });
+      }
+    }
   }
 }
