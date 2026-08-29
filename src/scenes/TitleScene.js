@@ -134,13 +134,13 @@ export class TitleScene extends Phaser.Scene {
       .setDepth(DEPTH.ui + 2);
     const title = this.add.text(182, 322, 'JIMOTHY:', {
       fontFamily: 'Vast Shadow, Georgia, serif',
-      fontSize: '112px',
+      fontSize: '120px',
       color: INK,
     }).setDepth(DEPTH.ui + 2);
     const subtitle = this.add.text(188, 478, 'THIS IS NOT YOUR DUMPSTER!', {
       fontFamily: 'Stardos Stencil, Georgia, serif',
       fontStyle: 'bold',
-      fontSize: '64px',
+      fontSize: '68px',
       color: '#6f2722',
     }).setDepth(DEPTH.ui + 2);
     const formNumber = this.add.text(190, 584, 'FORM 0-A:', {
@@ -165,7 +165,7 @@ export class TitleScene extends Phaser.Scene {
     const filingDetails = this.add.text(
       190,
       706,
-      'PURPOSE OF ENTRY:  PENDING\nAPPLICANT SPECIES:  UNCONFIRMED\nNUMBER OF GRAPES REQUESTED:  ONE (1)\nAPPLICATION STATUS:  UNFILED',
+      'PURPOSE OF ENTRY:  PENDING\nAPPLICANT SPECIES:  UNCONFIRMED\nINTENDED REFUSE ACTIVITY:  UNDISCLOSED\nAPPLICATION STATUS:  UNFILED',
       {
         fontFamily: 'Arial, sans-serif',
         fontSize: '23px',
@@ -173,9 +173,9 @@ export class TitleScene extends Phaser.Scene {
         lineSpacing: 12,
       },
     ).setDepth(DEPTH.ui + 2);
-    const filingPrompt = this.add.text(150, 920, '[click anywhere to submit form]', {
+    const filingPrompt = this.add.text(150, 896, '[click anywhere to submit form]', {
       fontFamily: 'Arial, sans-serif',
-      fontSize: '20px',
+      fontSize: '24px',
       color: '#837268',
     }).setDepth(DEPTH.ui + 2);
     this.approvedStamp = this.add.image(1000, 790, 'approvedStamp')
