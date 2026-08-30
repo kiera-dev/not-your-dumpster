@@ -13,7 +13,7 @@ export const DEPTH = Object.freeze({
 });
 
 export const INITIAL_STATE = Object.freeze({
-  personalObjective: 'GET GRAPE',
+  personalObjective: 'CONDUCT RACCOON BUSINESS',
   currentObjective: 'INVESTIGATE DUMPSTER',
   flags: {
     dumpsterOpened: false,
@@ -24,6 +24,7 @@ export const INITIAL_STATE = Object.freeze({
     enteredPermitOffice: false,
     clerkAskedForNumber: false,
     hasTicket033: false,
+    ticketsTaken: false,
     number033Called: false,
     hasForm8B: false,
     needsResidencyProof: false,

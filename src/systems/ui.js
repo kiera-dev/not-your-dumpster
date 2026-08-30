@@ -89,6 +89,7 @@ export function createObjectiveHud(scene, gameState) {
     if (showRageVisuals && !ragePulse.isPlaying()) ragePulse.resume();
     if (!showRageVisuals && ragePulse.isPlaying()) ragePulse.pause();
     personalText.setText(state.personalObjective);
+    personalText.setColor(state.personalObjective === 'GET GRAPE' ? '#713f78' : INK);
     currentText.setText(state.currentObjective);
     currentHeading.setVisible(true);
     currentText.setVisible(true);

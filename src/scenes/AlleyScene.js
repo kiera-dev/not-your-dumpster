@@ -350,7 +350,7 @@ export class AlleyScene extends Phaser.Scene {
     this.state.setFlag('hasLeaf');
     this.leaf?.destroy();
     this.leafHotspot?.destroy();
-    await showToast(this, 'ACQUIRED: LEAF — PROVENANCE UNCERTAIN');
+    await showToast(this, 'ACQUIRED: LEAF - PROVENANCE UNCERTAIN');
     this.jimothy.setTexture('jimothyIdle').setFlipX(false);
     fadeToScene(this, 'PermitOffice');
   }

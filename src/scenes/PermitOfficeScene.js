@@ -67,7 +67,10 @@ export class PermitOfficeScene extends Phaser.Scene {
     this.plant = addPlaced(this.state.has('deskTaken') ? 'happyPlant' : 'sadPlant', plantLayout);
     addPlaced('ticketScreen', layout.ticketScreen);
     addPlaced('hugeFormStack', layout.hugeFormStack);
-    this.ticketMachine = this.state.has('deskTaken') ? null : addPlaced('ticketMachine', layout.ticketMachine);
+    const ticketMachineTexture = this.state.has('hasTicket033') && !this.state.has('ticketsTaken')
+      ? 'ticketMachine'
+      : 'ticketMachineBlank';
+    this.ticketMachine = this.state.has('deskTaken') ? null : addPlaced(ticketMachineTexture, layout.ticketMachine);
     this.chainedPen = this.state.has('deskTaken') ? null : addPlaced('chainedPen', layout.pen);
     addPlaced('dracaena', layout.dracaena);
     addPlaced('formStack', layout.rightFormStack);
@@ -254,15 +257,15 @@ export class PermitOfficeScene extends Phaser.Scene {
       { speaker: 'Clerk', text: 'Ah. Form 12-C.' },
       { speaker: 'Clerk', text: 'Locating the form and completing the form are distinct municipal events.' },
       { speaker: 'Clerk', text: 'It requires updated proof of residency, renewed refuse-handling certification, and a jurisdictional appeal.' },
-      { speaker: 'Clerk', text: '—and naturally, a new Form 8-B.' },
+      { speaker: 'Clerk', text: 'And naturally, a new Form 8-B.' },
     ]);
     this.state.setFlag('form12Presented');
     this.createForm12Prop();
     playSfx(this, 'formSwoosh');
-    await showToast(this, 'RECEIVED: FORM 12-C — APPROXIMATELY 11.4 FEET');
+    await showToast(this, 'RECEIVED: FORM 12-C - APPROXIMATELY 11.4 FEET');
     this.clerk.setTexture('clerkTalk');
     await showDialogue(this, [
-      { speaker: 'Clerk', text: 'Sir, you’ll need to complete—' },
+      { speaker: 'Clerk', text: 'Sir, you’ll need to complete-' },
     ]);
     await showChoice(this, {
       speaker: 'Jimothy',
@@ -335,7 +338,7 @@ export class PermitOfficeScene extends Phaser.Scene {
       { speaker: 'Clerk', text: '…complete submission.' },
     ]);
     await showToast(this, 'FORM 12-C: SUBMITTED');
-    await this.hud.replaceCurrentObjective('TAKE PEN');
+    await this.hud.replaceCurrentObjective('TAKE ALL TICKETS');
     this.refreshExitPrompt();
     this.busy = false;
   }
@@ -343,18 +346,47 @@ export class PermitOfficeScene extends Phaser.Scene {
   async takeNumber() {
     if (this.busy) return;
     this.busy = true;
+    if (this.state.has('feralMode')
+      && this.state.has('form12Submitted')
+      && !this.state.has('ticketsTaken')) {
+      await showChoice(this, {
+        speaker: 'Jimothy',
+        text: 'The queue remains vulnerable.',
+        choices: [{ label: 'TAKE ALL TICKETS', value: 'tickets', feral: true }],
+      });
+      this.setFeralPose();
+      playSfx(this, 'ticketMachine');
+      for (let ticket = 0; ticket < 5; ticket += 1) {
+        await new Promise((resolve) => this.time.delayedCall(ticket === 0 ? 600 : 150, resolve));
+        playSfx(this, 'ticketRip');
+      }
+      this.ticketMachine.setTexture('ticketMachineBlank');
+      this.state.setFlag('ticketsTaken');
+      await showToast(this, 'RECEIVED: ALL REMAINING TICKETS');
+      await this.hud.replaceCurrentObjective('TAKE PEN');
+      this.busy = false;
+      return;
+    }
+    if (this.state.has('ticketsTaken')) {
+      await showDialogue(this, [{ speaker: 'Ticket machine', text: 'EMPTY.' }]);
+      this.busy = false;
+      return;
+    }
     if (this.state.has('hasTicket033')) {
       await showDialogue(this, [
-        { speaker: 'Jimothy', text: 'Ticket 033.' },
+        { speaker: 'Jimothy', text: 'Ticket 34.' },
         { speaker: 'Jimothy', text: 'A small document granting the right to continue waiting.' },
       ]);
       this.busy = false;
       return;
     }
 
-    await showDialogue(this, [
-      { speaker: 'Ticket machine', text: 'CHK.' },
-    ]);
+    playSfx(this, 'ticketMachine');
+    await new Promise((resolve) => this.time.delayedCall(700, resolve));
+    playSfx(this, 'ticketRip');
+    await new Promise((resolve) => this.time.delayedCall(300, resolve));
+    this.ticketMachine.setTexture('ticketMachine');
+    await showDialogue(this, [{ speaker: 'Ticket machine', text: 'CHK.' }]);
     this.state.setFlag('hasTicket033');
     await showToast(this, 'RECEIVED TICKET 033');
     if (this.state.data.currentObjective === 'TAKE A NUMBER') {
@@ -662,6 +694,14 @@ export class PermitOfficeScene extends Phaser.Scene {
     if (this.busy) return;
     this.busy = true;
     if (this.state.has('feralMode') && this.state.has('form12Submitted')) {
+      if (!this.state.has('ticketsTaken')) {
+        await showDialogue(this, [{ speaker: 'Jimothy', text: 'The queue remains vulnerable.' }]);
+        if (this.state.data.currentObjective !== 'TAKE ALL TICKETS') {
+          await this.hud.replaceCurrentObjective('TAKE ALL TICKETS');
+        }
+        this.busy = false;
+        return;
+      }
       if (this.state.has('deskTaken')) {
         await showDialogue(this, [
           { speaker: 'Jimothy', text: 'The pen and desk have entered raccoon custody.' },
@@ -908,7 +948,7 @@ export class PermitOfficeScene extends Phaser.Scene {
     this.keyHotspot?.destroy();
     this.municipalKey = null;
     this.keyHotspot = null;
-    await showToast(this, 'ACQUIRED: MUNICIPAL KEY — MUNICIPAL.');
+    await showToast(this, 'ACQUIRED: MUNICIPAL KEY - MUNICIPAL.');
     this.busy = false;
   }
 }

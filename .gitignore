@@ -4,8 +4,7 @@ outputs/
 .DS_Store
 *.log
 
-# Licensed release asset: keep locally for builds, but do not publish as a
-# standalone file in the source repository.
+# Retired licensed rage track: keep the local copy out of the source repository.
 public/assets/audio/music/future-anno-domini-beats.mp3
 
 # Local editable audio masters. Browser-ready exports live under public/assets/audio.

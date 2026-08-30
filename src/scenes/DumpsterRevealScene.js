@@ -30,6 +30,7 @@ export class DumpsterRevealScene extends Phaser.Scene {
       this.showEnding();
       return;
     }
+    this.state.setPersonalObjective('GET GRAPE');
     this.hotspot = createHotspot(this, layout.grapeHotspot, () => this.attemptGrape(), { label: 'Perfect grape' });
     if (this.state.has('grapeAttempted') && !this.state.has('feralMode')) {
       createSceneExit(this, 'BACK TO ALLEY', () => fadeToScene(this, 'Alley', { fromDumpster: true }));
