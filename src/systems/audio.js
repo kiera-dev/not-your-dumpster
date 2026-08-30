@@ -1,15 +1,24 @@
 import { DEPTH, GAME_WIDTH } from '../config/gameConfig.js';
 
 const STORAGE_KEY = 'not-your-dumpster-muted';
-const MASTER_VOLUME = 0.78;
+const MASTER_VOLUME = 0.90;
+const RAGE_VOLUME = 0.18;
+const RAGE_HANDOFF_LEAD_MS = 125;
 
 const AMBIENCE = Object.freeze({
-  alley: { key: 'alleyAmbience', volume: 0.07, fadeInMs: 650 },
-  interior: { key: 'officeAmbience', volume: 0.06, fadeInMs: 650 },
+  alley: { key: 'alleyAmbience', volume: 0.11, fadeInMs: 650 },
+  hearing: { key: 'officeAmbience', volume: 0.10, fadeInMs: 650 },
+  interior: { key: 'officeAmbience', volume: 0.10, fadeInMs: 650 },
+});
+const OFFICE_MUSIC = Object.freeze({
+  key: 'officeMuzak',
+  volume: 1,
+  fadeInMs: 0,
 });
 
 const SFX_VOLUMES = Object.freeze({
   bell: 0.42,
+  cashReceived: 0.52,
   coneKick: 0.62,
   coneMove: 0.38,
   cronchGrape: 0.50,
@@ -19,8 +28,12 @@ const SFX_VOLUMES = Object.freeze({
   eatForm: 0.46,
   formSwoosh: 0.40,
   inventoryUpdated: 0.34,
+  marketCrash: 0.52,
+  marketRise: 0.36,
   penChain: 0.44,
-  rageSting: 0.35,
+  ticketMachine: 0.56,
+  ticketRip: 0.42,
+  tradingBell: 0.34,
   stamp1: 0.50,
   stamp2: 0.50,
   uiClick: 0.20,
@@ -50,8 +63,8 @@ class AudioDirector {
     this.sound = scene.sound;
     this.loops = new Map();
     this.rageActive = false;
-    this.rageStingSound = null;
-    this.rageStartTimer = null;
+    this.rageIntroSound = null;
+    this.rageHandoffTimer = null;
     this.desiredAmbience = null;
     this.sound.volume = MASTER_VOLUME;
     this.sound.mute = readMutedPreference();
@@ -126,7 +139,10 @@ class AudioDirector {
 
     const launch = () => {
       if (!loop.active || this.sound.locked) return;
-      const next = this.sound.add(key, { volume: 0, loop: true });
+      const next = this.sound.add(key, {
+        volume: fadeInMs > 0 ? 0 : volume,
+        loop: true,
+      });
       loop.sounds.add(next);
       next.once('complete', () => {
         loop.sounds.delete(next);
@@ -137,48 +153,7 @@ class AudioDirector {
         next.destroy();
         return;
       }
-      this.fadeSound(next, volume, fadeInMs);
-    };
-    loop.launch = launch;
-    launch();
-  }
-
-  startCrossfadeLoop(name, key, { volume, overlapMs, fadeInMs = overlapMs }) {
-    this.stopLoop(name, 650);
-    const loop = {
-      active: true,
-      key,
-      volume,
-      overlapMs,
-      sounds: new Set(),
-      timer: null,
-    };
-    this.loops.set(name, loop);
-
-    const launch = () => {
-      if (!loop.active || this.sound.locked) return;
-      const outgoing = [...loop.sounds].filter((sound) => sound.isPlaying);
-      const next = this.sound.add(key, { volume: 0 });
-      loop.sounds.add(next);
-      next.once('complete', () => {
-        loop.sounds.delete(next);
-        next.destroy();
-      });
-      if (!next.play()) {
-        loop.sounds.delete(next);
-        next.destroy();
-        return;
-      }
-      outgoing.forEach((sound) => this.fadeSound(
-        sound,
-        0,
-        overlapMs,
-        true,
-        () => loop.sounds.delete(sound),
-      ));
-      this.fadeSound(next, volume, fadeInMs);
-      const nextLaunchMs = Math.max(1000, (next.duration * 1000) - overlapMs);
-      loop.timer = window.setTimeout(launch, nextLaunchMs);
+      if (fadeInMs > 0) this.fadeSound(next, volume, fadeInMs);
     };
     loop.launch = launch;
     launch();
@@ -212,38 +187,66 @@ class AudioDirector {
     } else {
       this.stopLoop('ambience', 650);
     }
+    const officeMusic = this.loops.get('officeMusic');
+    if (location === 'interior') {
+      if (officeMusic?.key !== OFFICE_MUSIC.key) {
+        this.startSimpleLoop('officeMusic', OFFICE_MUSIC.key, OFFICE_MUSIC);
+      }
+    } else {
+      this.stopLoop('officeMusic', 650);
+    }
+  }
+
+  startRageIntro() {
+    if (!this.rageActive
+      || this.rageIntroSound
+      || this.loops.has('rageMusic')
+      || this.sound.locked) return;
+
+    const intro = this.sound.add('rageIntro', { volume: RAGE_VOLUME });
+    this.rageIntroSound = intro;
+    intro.once('complete', () => {
+      window.clearTimeout(this.rageHandoffTimer);
+      this.rageHandoffTimer = null;
+      if (this.rageIntroSound === intro) this.rageIntroSound = null;
+      intro.destroy();
+      this.startRageLoop();
+    });
+    if (!intro.play()) {
+      this.rageIntroSound = null;
+      intro.destroy();
+      return;
+    }
+    this.rageHandoffTimer = window.setTimeout(
+      () => this.startRageLoop(),
+      Math.max(0, (intro.duration * 1000) - RAGE_HANDOFF_LEAD_MS),
+    );
+  }
+
+  startRageLoop() {
+    if (!this.rageActive || this.loops.has('rageMusic')) return;
+    this.startSimpleLoop('rageMusic', 'rageLoop', {
+      volume: RAGE_VOLUME,
+      fadeInMs: 0,
+    });
   }
 
   startRage() {
     if (this.rageActive) return;
     this.rageActive = true;
     this.stopLoop('ambience', 450);
-    this.rageStingSound = this.playSfx('rageSting');
-    window.clearTimeout(this.rageStartTimer);
-    this.rageStartTimer = window.setTimeout(() => {
-      if (!this.rageActive) return;
-      this.rageStartTimer = null;
-      this.startCrossfadeLoop('rageMusic', 'rageMusic', {
-        volume: 0.08,
-        overlapMs: 800,
-        fadeInMs: 1250,
-      });
-      if (this.rageStingSound?.isPlaying) {
-        const sting = this.rageStingSound;
-        this.rageStingSound = null;
-        this.fadeSound(sting, 0, 800, true);
-      }
-    }, 3250);
+    this.stopLoop('officeMusic', 450);
+    this.startRageIntro();
   }
 
   stopRage() {
     this.rageActive = false;
-    window.clearTimeout(this.rageStartTimer);
-    this.rageStartTimer = null;
-    if (this.rageStingSound?.isPlaying) {
-      this.fadeSound(this.rageStingSound, 0, 250, true);
+    window.clearTimeout(this.rageHandoffTimer);
+    this.rageHandoffTimer = null;
+    if (this.rageIntroSound?.isPlaying) {
+      this.fadeSound(this.rageIntroSound, 0, 1100, true);
     }
-    this.rageStingSound = null;
+    this.rageIntroSound = null;
     this.stopLoop('rageMusic', 1100);
     if (this.desiredAmbience) {
       window.setTimeout(() => {
@@ -256,12 +259,8 @@ class AudioDirector {
     this.loops.forEach((loop) => {
       if (loop.active && loop.sounds.size === 0) loop.launch();
     });
-    if (this.rageActive && !this.loops.has('rageMusic') && !this.rageStartTimer) {
-      this.startCrossfadeLoop('rageMusic', 'rageMusic', {
-        volume: 0.08,
-        overlapMs: 800,
-        fadeInMs: 1250,
-      });
+    if (this.rageActive && !this.loops.has('rageMusic') && !this.rageIntroSound) {
+      this.startRageIntro();
     } else if (!this.rageActive && this.desiredAmbience && !this.loops.has('ambience')) {
       this.setLocation(this.desiredAmbience);
     }
@@ -270,6 +269,7 @@ class AudioDirector {
   reset() {
     this.stopRage();
     this.stopLoop('ambience', 0);
+    this.stopLoop('officeMusic', 0);
     this.desiredAmbience = null;
   }
 }

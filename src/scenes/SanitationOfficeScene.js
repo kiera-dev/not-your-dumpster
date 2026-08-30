@@ -67,6 +67,11 @@ export class SanitationOfficeScene extends Phaser.Scene {
     });
     this.hud = createObjectiveHud(this, this.state);
     this.createTicker();
+    if (this.state.has('spoonSorted')) {
+      this.setTicker('SPOONS ▼ 96% - TRADING HALTED', { crashed: true });
+    } else if (this.state.has('vestEquipped')) {
+      this.updateRefuseMarketTicker();
+    }
     await autoWaddle(this, this.jimothy, layout.jimothy.settle, { speed: 800 });
     this.installHotspots();
     this.busy = false;
@@ -160,21 +165,22 @@ export class SanitationOfficeScene extends Phaser.Scene {
 
   updateRefuseMarketTicker() {
     if (this.state.has('spoonSorted')) return;
-    const instruments = [];
-    if (this.state.has('bananaSorted')) instruments.push('BANANA PEEL ▲ 4%');
-    if (this.state.has('foilSorted')) instruments.push('ALUMINIUM ▲ 8%');
-    instruments.push(
+    const instruments = [
+      'BANANA PEEL ▲ 4%',
+      'ALUMINIUM ▲ 8%',
       'BOTTLECAP ▼ 3%',
-      'YOGURT LID — STABLE',
+      'YOGURT LID - STABLE',
       'PIZZA CRUST FUTURES ▲ 2%',
-      'TWIST-TIE — VOLATILE',
+      'TWIST-TIE - VOLATILE',
       'RECEIPT LENGTH ▲ 11%',
       'KETCHUP PACKET ▼ 1%',
-      'COFFEE SLEEVE — HOLD',
+      'COFFEE SLEEVE - HOLD',
       'MYSTERY LID ▲ 6%',
       'WET CARDBOARD FUTURES ▼ 9%',
-    );
-    this.setTicker(instruments.join('     '), { marquee: true });
+    ];
+    const tickerText = instruments.join('     ');
+    if (this.tickerTween?.isPlaying() && this.tickerText.text === tickerText) return;
+    this.setTicker(tickerText, { marquee: true });
   }
 
   async talkToBeaver() {
@@ -184,7 +190,7 @@ export class SanitationOfficeScene extends Phaser.Scene {
       this.setBeaverTexture('beaverTalk');
       await showDialogue(this, [
         { speaker: 'Sanitation official', text: 'Orientation complete.' },
-        { speaker: 'Sanitation official', text: 'The spoon market will not recover from this.' },
+        { speaker: 'Sanitation official', text: 'The trash market will not recover from this.' },
       ]);
       this.setBeaverTexture('beaverIdle');
       this.busy = false;
@@ -208,8 +214,11 @@ export class SanitationOfficeScene extends Phaser.Scene {
       await showDialogue(this, [
         { speaker: 'Sanitation official', text: 'There.' },
         { speaker: 'Sanitation official', text: 'Official.' },
+        { speaker: 'Sanitation official', text: 'This office’s activities are tied directly to the municipal trash market.' },
         { speaker: 'Sanitation official', text: 'Classify the refuse.' },
       ]);
+      playSfx(this, 'tradingBell');
+      this.updateRefuseMarketTicker();
       this.setBeaverTexture('beaverIdle');
     } else {
       await showDialogue(this, [
@@ -310,14 +319,17 @@ export class SanitationOfficeScene extends Phaser.Scene {
     this.setBeaverTexture('beaverTalk');
     await showDialogue(this, [{
       speaker: 'Sanitation official',
-      text: destination === 'strategic' ? 'I suppose technically—' : 'That classification is—',
+      text: destination === 'strategic' ? 'I suppose technically-' : 'That classification is-',
     }]);
     for (const value of ['SPOONS ▲ 14%', 'SPOONS ▲ 370%', 'SPOONS ▲ 840%', 'SPOONS ▲ 2,100%', 'SPOONS ▲ 18,400%']) {
       this.setTicker(value);
+      playSfx(this, 'marketRise');
       await this.pause(520);
     }
-    this.setTicker('SPOONS ▼ 96% — TRADING HALTED', { crashed: true });
-    await this.pause(650);
+    this.setTicker('SPOONS ▼ 96% - TRADING HALTED', { crashed: true });
+    const crashSound = playSfx(this, 'marketCrash');
+    await this.pause(crashSound ? Math.ceil(crashSound.duration * 1000) : 650);
+    playSfx(this, 'tradingBell');
     this.setBeaverTexture('beaverHorrified');
     this.financeBro.setTexture('financeBroPanic');
     await showDialogue(this, [
@@ -337,6 +349,7 @@ export class SanitationOfficeScene extends Phaser.Scene {
     this.state.setFlag('hasSanitationCertification');
     this.state.setFlag('hasDollarThirteen');
     await showToast(this, 'CASE FILE UPDATED: SANITATION CERTIFICATION');
+    playSfx(this, 'cashReceived');
     await showToast(this, 'RECEIVED: $1.13');
     await this.hud.replaceCurrentObjective('PAY COMMERCIAL PROPERTY TAX');
     this.exitPrompt = createSceneExit(this, 'RETURN TO PERMIT OFFICE', () => this.useExit());

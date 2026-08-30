@@ -23,7 +23,7 @@ export class HearingRoomScene extends Phaser.Scene {
     this.busy = true;
     this.exitPrompt = null;
     this.state = new GameState(this.registry);
-    syncSceneAudio(this, 'interior');
+    syncSceneAudio(this, 'hearing');
     this.add.image(0, 0, layout.background).setOrigin(0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT).setDepth(DEPTH.background);
 
     const addPlaced = (texture, item) => this.add.image(item.x, item.y, texture)
@@ -150,25 +150,31 @@ export class HearingRoomScene extends Phaser.Scene {
         { speaker: 'Pigeon', text: '…It is orange.' },
       ]);
     }
+    const coneMovedEarly = this.state.has('coneMovedEarly');
     const cone = await showChoice(this, {
       speaker: 'Crow',
       text: 'Has the applicant altered the position of THE CONE?',
-      choices: [
+      choices: coneMovedEarly ? [
         { label: 'NO', value: 'no' },
         { label: 'SIX INCHES', value: 'six' },
         { label: 'RACCOON', value: 'raccoon' },
         { label: 'DEFINE “POSITION”', value: 'define' },
+      ] : [
+        { label: 'NO', value: 'no' },
+        { label: 'RACCOON?!', value: 'raccoonQuestion' },
+        { label: 'PRRT?', value: 'trill' },
+        { label: 'DEFINE “POSITION”', value: 'define' },
       ],
     });
-    const coneResponses = this.state.has('coneMovedEarly') ? {
+    const coneResponses = coneMovedEarly ? {
       no: 'The municipal record strongly disagrees.',
       six: 'The municipal record confirms six inches.',
       raccoon: 'THE CONE is not a raccoon.',
       define: 'The cited position is six inches west of the recorded position.',
     } : {
       no: 'No CONE incident is presently attached to this docket.',
-      six: 'Six inches is enough to require involving three districts.',
-      raccoon: 'THE CONE is not a raccoon.',
+      raccoonQuestion: 'The tribunal is aware. The applicant is not presently accused.',
+      trill: 'The tribunal records a small but legally nonbinding trill.',
       define: 'The tribunal begins defining “position.”',
     };
     await showDialogue(this, [{ speaker: 'Crow', text: coneResponses[cone] }]);
@@ -179,7 +185,7 @@ export class HearingRoomScene extends Phaser.Scene {
         { speaker: 'Crow', text: 'The tribunal is already aware of THE CONE boundary violation.' },
       ]);
       this.state.setFlag('hasConeCitation');
-      void showToast(this, 'RECEIVED: CITATION — BS 0736.02 §(C)');
+      void showToast(this, 'RECEIVED: CITATION - BS 0736.02 §(C)');
       await showDialogue(this, [{
         speaker: 'Crow',
         text: 'You are receiving a citation for violating BS 0736.02, subsection C: Unauthorized Changing of Jurisdictional Boundaries. Come back for your hearing date on November 23, 2088.',
@@ -204,7 +210,7 @@ export class HearingRoomScene extends Phaser.Scene {
     await showDialogue(this, [
       { speaker: 'Crow', text: 'Since THE CONE has moved, the jurisdictional boundary now places Container 7-C entirely within this jurisdiction by one inch.' },
       { speaker: 'Crow', text: 'This tribunal finds that the applicant completed every requirement presented for dumpster access.' },
-      { speaker: 'Crow', text: 'The Dumpster Access Permit is therefore—' },
+      { speaker: 'Crow', text: 'The Dumpster Access Permit is therefore-' },
       { speaker: 'Pigeon', text: 'Form 12-C is missing.' },
       { speaker: 'Crow', text: '…Of course it is.' },
       { speaker: 'Crow', text: 'DENIED.', sound: 'stamp2' },
